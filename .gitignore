@@ -1,0 +1,55 @@
+# OS / Editors
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+*.swo
+*.orig
+.vscode/
+.idea/
+*.code-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+.env.*
+*.sqlite3
+app.db
+pytest_cache/
+.coverage
+coverage/
+
+# Node / Frontend
+node_modules/
+dist/
+.build/
+.cache/
+*.tsbuildinfo
+frontend/node_modules/
+frontend/dist/
+
+# Move / Sui
+.sui/
+**/build/
+
+# Docker / Env
+**/.env
+**/.env.*
+docker-compose.override.yml
+
+# Secrets (prevent accidental leaks)
+*.pem
+*.key
+*private*key*.txt
+*.mnemonic
+secrets/
+examples/sample_wallet_private_key_demo.txt
+
+# Misc
+*.local
