@@ -1,0 +1,22 @@
+name: Deploy to Sui Devnet (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Sui CLI
+        run: |
+          set -e
+          curl -L https://github.com/MystenLabs/sui/releases/latest/download/sui -o sui
+          chmod +x sui
+          sudo mv sui /usr/local/bin/sui
+          sui --version
+      - name: Publish Move package to devnet
+        env:
+          SUI_MNEMONIC: ${{ secrets.SUI_MNEMONIC }}
+        run: |
+          bash sui-loyal/scripts/publish_devnet.sh

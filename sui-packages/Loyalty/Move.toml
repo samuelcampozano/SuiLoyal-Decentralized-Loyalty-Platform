@@ -1,0 +1,11 @@
+[package]
+name = "Loyalty"
+version = "0.0.1"
+
+authors = ["SuiLoyal"]
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui", subdir = "crates/sui-framework/packages/sui-framework", rev = "main" }
+
+[addresses]
+loyalty = "0x0"

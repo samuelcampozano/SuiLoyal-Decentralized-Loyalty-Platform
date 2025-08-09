@@ -51,5 +51,8 @@ docker-compose.override.yml
 secrets/
 examples/sample_wallet_private_key_demo.txt
 
+# Ignore the nested scaffold folder created earlier
+sui-loyal/
+# If you later flatten, remove the above line.
 # Misc
 *.local
