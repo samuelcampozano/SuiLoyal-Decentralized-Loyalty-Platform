@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   backend:
     build: ../backend
@@ -18,4 +17,9 @@ services:
       - VITE_API_BASE=http://localhost:8000
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
     volumes:
-      - ../frontend:/usr/src/app
+  - ../frontend:/usr/src/app
+  # Persist node_modules inside the container to avoid being masked by the bind mount
+  - frontend_node_modules:/usr/src/app/node_modules
+
+volumes:
+  frontend_node_modules:
