@@ -1,26 +1,22 @@
 import { FC } from 'react';
+import { useCurrentAccount, useDisconnectWallet } from '@mysten/dapp-kit';
+import { ConnectButton } from '@mysten/dapp-kit';
 
 interface NavigationProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
-  isConnected: boolean;
-  walletAddress: string;
   pointsBalance: number;
-  loading: boolean;
-  connectWallet: () => void;
-  disconnectWallet: () => void;
 }
 
 export const Navigation: FC<NavigationProps> = ({
   currentTab,
   setCurrentTab,
-  isConnected,
-  walletAddress,
   pointsBalance,
-  loading,
-  connectWallet,
-  disconnectWallet,
-}) => (
+}) => {
+  const currentAccount = useCurrentAccount();
+  const { mutate: disconnect } = useDisconnectWallet();
+
+  return (
   <nav className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center h-16">
@@ -54,32 +50,29 @@ export const Navigation: FC<NavigationProps> = ({
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          {isConnected && (
+          {currentAccount && (
             <div className="bg-white/20 px-3 py-1 rounded-full">
               <span className="font-bold">{pointsBalance}</span> points
             </div>
           )}
-          {isConnected ? (
+          {currentAccount ? (
             <div className="flex items-center space-x-2">
-              <span className="text-sm">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
+              <span className="text-sm">
+                {currentAccount.address.slice(0, 6)}...{currentAccount.address.slice(-4)}
+              </span>
               <button
-                onClick={disconnectWallet}
+                onClick={() => disconnect()}
                 className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors"
               >
                 Disconnect
               </button>
             </div>
           ) : (
-            <button
-              onClick={connectWallet}
-              className="bg-white text-blue-600 hover:bg-gray-100 px-4 py-2 rounded-lg font-semibold transition-colors"
-              disabled={loading}
-            >
-              Connect Wallet
-            </button>
+            <ConnectButton />
           )}
         </div>
       </div>
     </div>
   </nav>
-);
+  );
+};

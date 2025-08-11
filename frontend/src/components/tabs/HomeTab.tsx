@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import { ConnectButton } from '@mysten/dapp-kit';
 import { Transaction, LoyaltyAccount } from '../../types';
 
 interface HomeTabProps {
@@ -6,7 +7,6 @@ interface HomeTabProps {
   loyaltyAccount: LoyaltyAccount | null;
   loading: boolean;
   transactions: Transaction[];
-  connectWallet: () => void;
   createLoyaltyAccount: () => void;
 }
 
@@ -15,7 +15,6 @@ export const HomeTab: FC<HomeTabProps> = ({
   loyaltyAccount,
   loading,
   transactions,
-  connectWallet,
   createLoyaltyAccount,
 }) => (
   <div className="space-y-8">
@@ -26,12 +25,9 @@ export const HomeTab: FC<HomeTabProps> = ({
         Earn points from any participating merchant and redeem them for exclusive rewards!
       </p>
       {!isConnected && (
-        <button
-          onClick={connectWallet}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
-        >
-          Get Started →
-        </button>
+        <div className="flex flex-col items-start">
+          <ConnectButton />
+        </div>
       )}
       {isConnected && !loyaltyAccount && (
         <button

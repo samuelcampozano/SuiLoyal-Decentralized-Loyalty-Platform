@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useCurrentAccount } from '@mysten/dapp-kit';
 import { Navigation } from './components/Navigation';
 import { Notification } from './components/Notification';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -11,10 +12,8 @@ import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as Notifica
 
 
 export default function App() {
+  const currentAccount = useCurrentAccount();
   const [currentTab, setCurrentTab] = useState('home');
-  const [walletAddress, setWalletAddress] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-  const [balance, setBalance] = useState(0);
   const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
   const [pointsBalance, setPointsBalance] = useState(0);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -51,30 +50,16 @@ export default function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const connectWallet = async () => {
-    try {
-      setLoading(true);
-      // Simulate wallet connection
-      const mockAddress = '0x' + Math.random().toString(16).slice(2, 42);
-      setWalletAddress(mockAddress);
-      setIsConnected(true);
-      setBalance(1000); // Mock SUI balance
-      setPointsBalance(150); // Mock points balance
+  // Update points balance when wallet connects/disconnects
+  useEffect(() => {
+    if (currentAccount) {
+      // Set demo points balance when wallet connects
+      setPointsBalance(150);
       showNotification('Wallet connected successfully!', 'success');
-    } catch {
-      showNotification('Failed to connect wallet', 'error');
-    } finally {
-      setLoading(false);
+    } else {
+      setPointsBalance(0);
     }
-  };
-
-  const disconnectWallet = () => {
-    setWalletAddress('');
-    setIsConnected(false);
-    setBalance(0);
-    setPointsBalance(0);
-    showNotification('Wallet disconnected');
-  };
+  }, [currentAccount]);
 
   const createLoyaltyAccount = async () => {
     try {
@@ -148,12 +133,7 @@ export default function App() {
       <Navigation 
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
-        isConnected={isConnected}
-        walletAddress={walletAddress}
         pointsBalance={pointsBalance}
-        loading={loading}
-        connectWallet={connectWallet}
-        disconnectWallet={disconnectWallet}
       />
       
       {notification && (
@@ -166,18 +146,17 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentTab === 'home' && (
           <HomeTab 
-            isConnected={isConnected}
+            isConnected={!!currentAccount}
             loyaltyAccount={loyaltyAccount}
             loading={loading}
             transactions={transactions}
-            connectWallet={connectWallet}
             createLoyaltyAccount={createLoyaltyAccount}
           />
         )}
         {currentTab === 'rewards' && (
           <RewardsTab 
             rewards={rewards}
-            isConnected={isConnected}
+            isConnected={!!currentAccount}
             pointsBalance={pointsBalance}
             loading={loading}
             redeemReward={redeemReward}
@@ -186,19 +165,18 @@ export default function App() {
         {currentTab === 'merchant' && (
           <MerchantTab 
             merchants={merchants}
-            isConnected={isConnected}
+            isConnected={!!currentAccount}
             loading={loading}
             issuePoints={issuePoints}
           />
         )}
         {currentTab === 'profile' && (
           <ProfileTab 
-            isConnected={isConnected}
-            walletAddress={walletAddress}
+            isConnected={!!currentAccount}
+            walletAddress={currentAccount?.address || ''}
             pointsBalance={pointsBalance}
-            balance={balance}
+            balance={0}
             transactions={transactions}
-            connectWallet={connectWallet}
           />
         )}
       </main>

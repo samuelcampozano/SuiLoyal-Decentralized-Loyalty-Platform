@@ -61,3 +61,6 @@ pnpm-lock.yaml
 *.tmp
 .temp/
 .claude/
+sui.exe
+SUI_SETUP_GUIDE.md
+testing_guide.md

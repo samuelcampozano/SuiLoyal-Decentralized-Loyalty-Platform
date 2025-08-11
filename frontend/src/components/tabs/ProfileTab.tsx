@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import { ConnectButton } from '@mysten/dapp-kit';
 import { Transaction } from '../../types';
 
 interface ProfileTabProps {
@@ -7,7 +8,6 @@ interface ProfileTabProps {
   pointsBalance: number;
   balance: number;
   transactions: Transaction[];
-  connectWallet: () => void;
 }
 
 export const ProfileTab: FC<ProfileTabProps> = ({
@@ -16,7 +16,6 @@ export const ProfileTab: FC<ProfileTabProps> = ({
   pointsBalance,
   balance,
   transactions,
-  connectWallet,
 }) => (
   <div className="space-y-6">
     <div className="bg-white rounded-xl p-6 shadow-lg">
@@ -82,12 +81,7 @@ export const ProfileTab: FC<ProfileTabProps> = ({
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🔒</div>
           <p className="text-gray-600 mb-4">Connect your wallet to view your profile</p>
-          <button
-            onClick={connectWallet}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
-          >
-            Connect Wallet
-          </button>
+          <ConnectButton />
         </div>
       )}
     </div>
