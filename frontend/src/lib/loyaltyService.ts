@@ -1,5 +1,6 @@
 import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
+import { bcs } from '@mysten/sui/bcs';
 import { PACKAGE_ID, PLATFORM_ID, SUI_CONFIG } from '../config';
 
 export class LoyaltyService {
@@ -144,8 +145,8 @@ export class LoyaltyService {
       target: `${PACKAGE_ID}::loyalty_system::register_merchant`,
       arguments: [
         tx.object(PLATFORM_ID),           // platform
-        tx.pure(new TextEncoder().encode(name)),        // name as bytes
-        tx.pure(new TextEncoder().encode(description)), // description as bytes  
+        tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(name)))),        // name as vector<u8>
+        tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(description)))), // description as vector<u8>
         tx.object('0x6'),                 // Clock shared object
       ],
     });
