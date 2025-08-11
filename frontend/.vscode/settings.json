@@ -1,0 +1,25 @@
+{
+  "css.validate": true,
+  "css.lint.unknownAtRules": "ignore",
+  "scss.validate": true,
+  "scss.lint.unknownAtRules": "ignore",
+  "postcss.validate": true,
+  "tailwindCSS.includeLanguages": {
+    "typescript": "typescript",
+    "typescriptreact": "typescriptreact"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    "class[Name]*\\s*[:=]\\s*['\"]([^'\"]*)['\"]",
+    "className\\s*[:=]\\s*['\"]([^'\"]*)['\"]"
+  ],
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
+  },
+  "files.associations": {
+    "*.move": "rust"
+  }
+}

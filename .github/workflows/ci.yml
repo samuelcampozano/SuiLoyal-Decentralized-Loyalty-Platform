@@ -2,59 +2,142 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
+env:
+  SUI_INSTALL_DIR: "$HOME/.sui/bin"
+
 jobs:
   move-tests:
-    name: Move tests
+    name: Move Tests
     runs-on: ubuntu-latest
+    
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies for Sui CLI
-        run: sudo apt-get update && sudo apt-get install -y libssl-dev libpq-dev curl git
+      
+      - name: Cache Sui installation
+        uses: actions/cache@v3
+        id: cache-sui
+        with:
+          path: ~/.sui
+          key: ${{ runner.os }}-sui-${{ hashFiles('**/Move.toml') }}
+      
       - name: Install Sui CLI
+        if: steps.cache-sui.outputs.cache-hit != 'true'
         run: |
-          set -e
-          curl -L https://github.com/MystenLabs/sui/releases/latest/download/sui -o sui
+          echo "Installing Sui CLI..."
+          curl -L https://github.com/MystenLabs/sui/releases/latest/download/sui --output sui
           chmod +x sui
-          sudo mv sui /usr/local/bin/sui
-          sui --version
-      - name: Run Move tests
-        working-directory: sui-loyal/sui-packages/Loyalty
-        run: sui move test
-
-  backend:
-    name: Backend tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install Python deps
-        working-directory: sui-loyal/backend
+          mkdir -p $HOME/.sui/bin
+          mv sui $HOME/.sui/bin/
+          echo "$HOME/.sui/bin" >> $GITHUB_PATH
+      
+      - name: Verify Sui installation
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Run pytest
-        working-directory: sui-loyal/backend
-        run: pytest -q
+          export PATH="$HOME/.sui/bin:$PATH"
+          sui --version
+      
+      - name: Build Move package
+        working-directory: ./sui-packages/Loyalty
+        run: |
+          export PATH="$HOME/.sui/bin:$PATH"
+          sui move build
+      
+      - name: Run Move tests
+        working-directory: ./sui-packages/Loyalty
+        run: |
+          export PATH="$HOME/.sui/bin:$PATH"
+          sui move test --coverage
+      
+      - name: Check Move coverage
+        working-directory: ./sui-packages/Loyalty
+        run: |
+          export PATH="$HOME/.sui/bin:$PATH"
+          sui move coverage summary
 
-  frontend:
-    name: Frontend tests
+  frontend-tests:
+    name: Frontend Tests
     runs-on: ubuntu-latest
+    
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'sui-loyal/frontend/package-lock.json'
-      - name: Install deps
-        working-directory: sui-loyal/frontend
-        run: npm ci || npm install
-      - name: Run unit tests
-        working-directory: sui-loyal/frontend
-        run: npm test -- --run
+          node-version: '18'
+          
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+      
+      - name: Type check
+        working-directory: ./frontend
+        run: pnpm tsc --noEmit
+      
+      - name: Lint
+        working-directory: ./frontend
+        run: pnpm lint
+      
+      - name: Run tests
+        working-directory: ./frontend
+        run: pnpm test --run
+      
+      - name: Build
+        working-directory: ./frontend
+        run: pnpm build
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy security scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: [move-tests, frontend-tests]
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Vercel Preview
+        run: |
+          echo "Deploy preview URL will be added here"
+          # Add Vercel deployment steps here

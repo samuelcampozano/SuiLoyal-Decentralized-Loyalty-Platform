@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "dbaeumer.vscode-eslint",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "ms-vscode.vscode-json",
+    "rust-lang.rust-analyzer"
+  ]
+}

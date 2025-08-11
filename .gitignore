@@ -1,58 +1,63 @@
-# OS / Editors
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+sui-packages/*/build/
+
+# Testing
+coverage/
+*.lcov
+.nyc_output
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
 .DS_Store
-Thumbs.db
-*.log
-*.tmp
 *.swp
 *.swo
-*.orig
-.vscode/
-.idea/
-*.code-workspace
+*~
 
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.venv/
-venv/
-.env
-.env.*
-*.sqlite3
-app.db
-pytest_cache/
-.coverage
-coverage/
-
-# Node / Frontend
-node_modules/
-dist/
-.build/
-.cache/
-*.tsbuildinfo
-frontend/node_modules/
-frontend/dist/
-
-# Move / Sui
+# Sui specific
 .sui/
-**/build/
+*.keypair
+deployment.json
+frontend/src/config.ts
 
-# Docker / Env
-**/.env
-**/.env.*
-docker-compose.override.yml
+# OS files
+Thumbs.db
+.DS_Store
 
-# Secrets (prevent accidental leaks)
-*.pem
-*.key
-*private*key*.txt
-*.mnemonic
-secrets/
-examples/sample_wallet_private_key_demo.txt
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Ignore the nested scaffold folder created earlier
-sui-loyal/
-# If you later flatten, remove the above line.
-# Misc
-*.local
+# Debug
+*.log
+
+# Temporary files
+*.tmp
+.temp/
+.claude/
