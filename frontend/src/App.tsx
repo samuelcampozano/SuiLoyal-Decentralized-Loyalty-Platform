@@ -130,14 +130,28 @@ export default function App() {
       return;
     }
 
+    showNotification('Demo points issuance requires merchant registration and proper smart contract integration. This feature will be implemented in the next update.', 'info');
+    
+    // For now, just simulate the points for demo purposes
+    // In production, this would require:
+    // 1. Merchant registration to get MerchantCap
+    // 2. User's LoyaltyAccount object ID
+    // 3. Proper transaction with all required parameters
+    
+    // TODO: Implement proper merchant flow
+    console.log('Points issuance requested:', amount, 'for user:', currentAccount.address);
+  };
+
+  const registerMerchant = async (name: string, description: string) => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
     try {
       setLoading(true);
       
-      const tx = loyaltyService.issuePointsTransaction(
-        currentAccount.address, // In production, this would be the merchant address
-        currentAccount.address,
-        amount
-      );
+      const tx = loyaltyService.registerMerchantTransaction(name, description);
       
       signAndExecuteTransaction(
         {
@@ -145,19 +159,19 @@ export default function App() {
         },
         {
           onSuccess: async (_result: any) => {
-            showNotification(`${amount} points issued successfully!`, 'success');
-            // Reload user data to reflect new balance
+            showNotification('Successfully registered as merchant!', 'success');
+            // Reload user data
             await loadUserData(currentAccount.address!);
           },
           onError: (error: any) => {
-            console.error('Transaction failed:', error);
-            showNotification('Failed to issue points', 'error');
+            console.error('Merchant registration failed:', error);
+            showNotification('Failed to register as merchant', 'error');
           },
         }
       );
     } catch (error) {
-      console.error('Error issuing points:', error);
-      showNotification('Failed to issue points', 'error');
+      console.error('Error registering merchant:', error);
+      showNotification('Failed to register as merchant', 'error');
     } finally {
       setLoading(false);
     }
@@ -248,6 +262,7 @@ export default function App() {
             isConnected={!!currentAccount}
             loading={loading}
             issuePoints={issuePoints}
+            registerMerchant={registerMerchant}
           />
         )}
         {currentTab === 'profile' && (

@@ -6,6 +6,7 @@ interface MerchantTabProps {
   isConnected: boolean;
   loading: boolean;
   issuePoints: (amount: number) => void;
+  registerMerchant: (name: string, description: string) => void;
 }
 
 export const MerchantTab: FC<MerchantTabProps> = ({
@@ -13,13 +14,28 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   isConnected,
   loading,
   issuePoints,
+  registerMerchant,
 }) => (
   <div className="space-y-6">
     <div className="bg-white rounded-xl p-6 shadow-lg">
       <h2 className="text-2xl font-bold mb-4">🏪 Merchant Portal</h2>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <h3 className="font-bold text-lg mb-2">Register as Merchant</h3>
+        <p className="text-sm text-blue-800 mb-4">
+          Register your business to issue loyalty points to customers
+        </p>
+        <button
+          onClick={() => registerMerchant('Demo Merchant', 'A demo merchant for testing')}
+          disabled={!isConnected || loading}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
+        >
+          Register as Demo Merchant
+        </button>
+      </div>
+
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
         <p className="text-sm text-yellow-800">
-          Demo Mode: Click "Issue Demo Points" to simulate earning points from a purchase
+          Note: Points issuance requires merchant registration and proper MerchantCap. This will be fully implemented in the next update.
         </p>
       </div>
 

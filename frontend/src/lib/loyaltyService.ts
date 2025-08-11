@@ -122,14 +122,31 @@ export class LoyaltyService {
     return 'other';
   }
 
-  // Create a loyalty account transaction
+  // Create a loyalty account transaction  
   createLoyaltyAccountTransaction(_userAddress: string): Transaction {
     const tx = new Transaction();
     
     tx.moveCall({
       target: `${PACKAGE_ID}::loyalty_system::create_loyalty_account`,
       arguments: [
-        tx.object(PLATFORM_ID),
+        tx.object('0x6'), // Clock shared object
+      ],
+    });
+
+    return tx;
+  }
+
+  // Register as merchant transaction
+  registerMerchantTransaction(name: string, description: string): Transaction {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::register_merchant`,
+      arguments: [
+        tx.object(PLATFORM_ID),           // platform
+        tx.pure(new TextEncoder().encode(name)),        // name as bytes
+        tx.pure(new TextEncoder().encode(description)), // description as bytes  
+        tx.object('0x6'),                 // Clock shared object
       ],
     });
 
