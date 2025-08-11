@@ -24,22 +24,37 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<NotificationType | null>(null);
 
-  // Initialize with fallback data for demo purposes
-  useEffect(() => {
-    // Set fallback rewards data (in production, this would come from smart contract)
-    setRewards([
-      { id: '1', merchantId: '1', name: 'Free Coffee', description: 'Redeem for any coffee', pointsCost: 100, imageUrl: '☕', remaining: 50 },
-      { id: '2', merchantId: '1', name: 'Pastry Combo', description: 'Coffee + Pastry', pointsCost: 150, imageUrl: '🥐', remaining: 30 },
-      { id: '3', merchantId: '2', name: '10% Off Coupon', description: 'Valid on all items', pointsCost: 200, imageUrl: '🎫', remaining: 100 },
-      { id: '4', merchantId: '3', name: 'Book of the Month', description: 'Bestseller pick', pointsCost: 300, imageUrl: '📚', remaining: 20 }
-    ]);
+  // Load blockchain data
+  const loadBlockchainData = async () => {
+    try {
+      // Load real reward templates from blockchain
+      const rewardTemplates = await loyaltyService.getRewardTemplates();
+      
+      if (rewardTemplates.length > 0) {
+        setRewards(rewardTemplates);
+        console.log('Loaded real reward templates:', rewardTemplates);
+      } else {
+        // Show message that no rewards exist yet
+        setRewards([]);
+        console.log('No reward templates found on blockchain');
+      }
 
-    // Set fallback merchants data (in production, this would come from smart contract)
-    setMerchants([
-      { id: '1', name: 'Coffee Paradise', description: 'Premium coffee experience', totalIssued: 50000, isActive: true },
-      { id: '2', name: 'TechMart', description: 'Electronics & gadgets', totalIssued: 120000, isActive: true },
-      { id: '3', name: 'BookHaven', description: 'Your local bookstore', totalIssued: 30000, isActive: true }
-    ]);
+      // Set fallback merchants data (in production, this would come from smart contract)
+      setMerchants([
+        { id: '1', name: 'Coffee Paradise', description: 'Premium coffee experience', totalIssued: 50000, isActive: true },
+        { id: '2', name: 'TechMart', description: 'Electronics & gadgets', totalIssued: 120000, isActive: true },
+        { id: '3', name: 'BookHaven', description: 'Your local bookstore', totalIssued: 30000, isActive: true }
+      ]);
+    } catch (error) {
+      console.error('Error loading blockchain data:', error);
+      // Fallback to empty rewards if blockchain loading fails
+      setRewards([]);
+    }
+  };
+
+  // Initialize with blockchain data
+  useEffect(() => {
+    loadBlockchainData();
   }, []);
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -240,15 +255,59 @@ export default function App() {
       return;
     }
 
-    // For now, show a message that reward templates need to be created first
-    showNotification('Reward redemption requires RewardTemplate objects to be created on-chain first. This feature will be implemented when merchants create reward templates.', 'info');
-    
-    // TODO: Implement reward template creation and redemption flow
-    // The smart contract requires:
-    // 1. Merchants to create RewardTemplate objects using create_reward_template
-    // 2. RewardTemplate object IDs to be used in redemption transactions
-    
-    console.log('Reward redemption requested:', reward.name, 'Cost:', reward.pointsCost);
+    // Check if this is a real reward template (has object ID) or mock data
+    if (reward.id.startsWith('0x')) {
+      // Real reward template - proceed with redemption
+      try {
+        setLoading(true);
+        
+        // Get user's LoyaltyAccount
+        const objects = await loyaltyService.client.getOwnedObjects({
+          owner: currentAccount.address,
+          options: { showType: true, showContent: true },
+        });
+
+        const loyaltyAccountObj = objects.data.find(obj => 
+          obj.data?.type?.includes('LoyaltyAccount')
+        );
+
+        if (!loyaltyAccountObj?.data?.objectId) {
+          showNotification('LoyaltyAccount not found. Please create loyalty account first.', 'error');
+          return;
+        }
+
+        const tx = loyaltyService.redeemRewardTransaction(
+          loyaltyAccountObj.data.objectId,
+          reward.id
+        );
+        
+        signAndExecuteTransaction(
+          {
+            transactionBlock: tx as any,
+          },
+          {
+            onSuccess: async (_result: any) => {
+              showNotification(`Successfully redeemed: ${reward.name}! 🎉`, 'success');
+              // Reload user data and blockchain data to reflect changes
+              await loadUserData(currentAccount.address!);
+              await loadBlockchainData();
+            },
+            onError: (error: any) => {
+              console.error('Redemption failed:', error);
+              showNotification('Redemption failed: ' + error.message, 'error');
+            },
+          }
+        );
+      } catch (error) {
+        console.error('Error redeeming reward:', error);
+        showNotification('Redemption failed', 'error');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Mock reward - show message about creating real rewards
+      showNotification('This is demo data. Please create real reward templates using the "Create Demo Rewards" button in the Merchant tab.', 'info');
+    }
   };
 
   const createDemoRewards = async () => {
@@ -315,6 +374,8 @@ export default function App() {
       }
 
       showNotification('Demo reward templates created successfully! 🎉', 'success');
+      // Reload blockchain data to show the new rewards
+      await loadBlockchainData();
     } catch (error) {
       console.error('Error creating demo rewards:', error);
       showNotification('Failed to create demo rewards', 'error');

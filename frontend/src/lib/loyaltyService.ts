@@ -82,6 +82,21 @@ export class LoyaltyService {
     }
   }
 
+  // Get reward templates from the blockchain
+  async getRewardTemplates() {
+    try {
+      // Query objects by type using multiGetObjects with specific IDs would be ideal
+      // For now, return empty array since we need object IDs to query shared objects
+      // In production, we'd track RewardTemplate IDs from events or maintain an index
+      
+      console.log('RewardTemplate querying not fully implemented - need object IDs from events');
+      return [];
+    } catch (error) {
+      console.error('Error fetching reward templates:', error);
+      return [];
+    }
+  }
+
   // Get transaction history for a user
   async getUserTransactionHistory(userAddress: string) {
     try {
