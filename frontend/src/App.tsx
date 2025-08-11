@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { Navigation } from './components/Navigation';
 import { Notification } from './components/Notification';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -9,10 +9,12 @@ import { RewardsTab } from './components/tabs/RewardsTab';
 import { MerchantTab } from './components/tabs/MerchantTab';
 import { ProfileTab } from './components/tabs/ProfileTab';
 import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as NotificationType } from './types';
+import { loyaltyService } from './lib/loyaltyService';
 
 
 export default function App() {
   const currentAccount = useCurrentAccount();
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
   const [currentTab, setCurrentTab] = useState('home');
   const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
   const [pointsBalance, setPointsBalance] = useState(0);
@@ -22,15 +24,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<NotificationType | null>(null);
 
-  // Mock data for demo
+  // Initialize with fallback data for demo purposes
   useEffect(() => {
-    // Initialize with demo data
-    setMerchants([
-      { id: '1', name: 'Coffee Paradise', description: 'Premium coffee experience', totalIssued: 50000, isActive: true },
-      { id: '2', name: 'TechMart', description: 'Electronics & gadgets', totalIssued: 120000, isActive: true },
-      { id: '3', name: 'BookHaven', description: 'Your local bookstore', totalIssued: 30000, isActive: true }
-    ]);
-
+    // Set fallback rewards data (in production, this would come from smart contract)
     setRewards([
       { id: '1', merchantId: '1', name: 'Free Coffee', description: 'Redeem for any coffee', pointsCost: 100, imageUrl: '☕', remaining: 50 },
       { id: '2', merchantId: '1', name: 'Pastry Combo', description: 'Coffee + Pastry', pointsCost: 150, imageUrl: '🥐', remaining: 30 },
@@ -38,10 +34,11 @@ export default function App() {
       { id: '4', merchantId: '3', name: 'Book of the Month', description: 'Bestseller pick', pointsCost: 300, imageUrl: '📚', remaining: 20 }
     ]);
 
-    setTransactions([
-      { id: '1', type: 'earned', merchant: 'Coffee Paradise', amount: 50, date: new Date().toISOString() },
-      { id: '2', type: 'earned', merchant: 'TechMart', amount: 200, date: new Date().toISOString() },
-      { id: '3', type: 'redeemed', merchant: 'Coffee Paradise', amount: -100, reward: 'Free Coffee', date: new Date().toISOString() }
+    // Set fallback merchants data (in production, this would come from smart contract)
+    setMerchants([
+      { id: '1', name: 'Coffee Paradise', description: 'Premium coffee experience', totalIssued: 50000, isActive: true },
+      { id: '2', name: 'TechMart', description: 'Electronics & gadgets', totalIssued: 120000, isActive: true },
+      { id: '3', name: 'BookHaven', description: 'Your local bookstore', totalIssued: 30000, isActive: true }
     ]);
   }, []);
 
@@ -50,25 +47,77 @@ export default function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Update points balance when wallet connects/disconnects
+  // Load user data when wallet connects/disconnects
   useEffect(() => {
-    if (currentAccount) {
-      // Set demo points balance when wallet connects
-      setPointsBalance(150);
+    if (currentAccount?.address) {
+      loadUserData(currentAccount.address);
       showNotification('Wallet connected successfully!', 'success');
     } else {
       setPointsBalance(0);
+      setLoyaltyAccount(null);
+      setTransactions([]);
     }
   }, [currentAccount]);
 
-  const createLoyaltyAccount = async () => {
+  const loadUserData = async (userAddress: string) => {
     try {
       setLoading(true);
-      // Simulate account creation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setLoyaltyAccount({ id: 'acc_' + Date.now(), created: true });
-      showNotification('Loyalty account created!', 'success');
-    } catch {
+      
+      // Load points balance from blockchain
+      const balance = await loyaltyService.getUserPointsBalance(userAddress);
+      setPointsBalance(balance);
+      
+      // Check if user has loyalty account
+      const hasAccount = await loyaltyService.hasLoyaltyAccount(userAddress);
+      setLoyaltyAccount(hasAccount ? { id: userAddress, created: true } : null);
+      
+      // Load transaction history
+      const txHistory = await loyaltyService.getUserTransactionHistory(userAddress);
+      setTransactions(txHistory.map(tx => ({
+        id: tx.id,
+        type: tx.type,
+        merchant: 'On-chain Transaction',
+        amount: 0, // Would need to be parsed from transaction data
+        date: tx.timestamp
+      })));
+      
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      showNotification('Error loading blockchain data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createLoyaltyAccount = async () => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const tx = loyaltyService.createLoyaltyAccountTransaction(currentAccount.address);
+      
+      signAndExecuteTransaction(
+        {
+          transaction: tx,
+        },
+        {
+          onSuccess: async (result) => {
+            showNotification('Loyalty account created successfully!', 'success');
+            // Reload user data to reflect new account
+            await loadUserData(currentAccount.address!);
+          },
+          onError: (error) => {
+            console.error('Transaction failed:', error);
+            showNotification('Failed to create account', 'error');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error creating loyalty account:', error);
       showNotification('Failed to create account', 'error');
     } finally {
       setLoading(false);
@@ -76,20 +125,38 @@ export default function App() {
   };
 
   const issuePoints = async (amount: number) => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
     try {
       setLoading(true);
-      // Simulate points issuance
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setPointsBalance(prev => prev + amount);
-      setTransactions(prev => [{
-        id: Date.now().toString(),
-        type: 'earned',
-        merchant: 'Demo Merchant',
-        amount,
-        date: new Date().toISOString()
-      }, ...prev]);
-      showNotification(`${amount} points added!`, 'success');
-    } catch {
+      
+      const tx = loyaltyService.issuePointsTransaction(
+        currentAccount.address, // In production, this would be the merchant address
+        currentAccount.address,
+        amount
+      );
+      
+      signAndExecuteTransaction(
+        {
+          transaction: tx,
+        },
+        {
+          onSuccess: async (result) => {
+            showNotification(`${amount} points issued successfully!`, 'success');
+            // Reload user data to reflect new balance
+            await loadUserData(currentAccount.address!);
+          },
+          onError: (error) => {
+            console.error('Transaction failed:', error);
+            showNotification('Failed to issue points', 'error');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error issuing points:', error);
       showNotification('Failed to issue points', 'error');
     } finally {
       setLoading(false);
@@ -97,6 +164,11 @@ export default function App() {
   };
 
   const redeemReward = async (reward: Reward) => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
     if (pointsBalance < reward.pointsCost) {
       showNotification('Insufficient points!', 'error');
       return;
@@ -104,19 +176,27 @@ export default function App() {
 
     try {
       setLoading(true);
-      // Simulate redemption
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setPointsBalance(prev => prev - reward.pointsCost);
-      setTransactions(prev => [{
-        id: Date.now().toString(),
-        type: 'redeemed',
-        merchant: merchants.find(m => m.id === reward.merchantId)?.name || 'Unknown',
-        amount: -reward.pointsCost,
-        reward: reward.name,
-        date: new Date().toISOString()
-      }, ...prev]);
-      showNotification(`Redeemed: ${reward.name}! 🎉`, 'success');
-    } catch {
+      
+      const tx = loyaltyService.redeemRewardTransaction(currentAccount.address, reward.id);
+      
+      signAndExecuteTransaction(
+        {
+          transaction: tx,
+        },
+        {
+          onSuccess: async (result) => {
+            showNotification(`Successfully redeemed: ${reward.name}! 🎉`, 'success');
+            // Reload user data to reflect new balance
+            await loadUserData(currentAccount.address!);
+          },
+          onError: (error) => {
+            console.error('Transaction failed:', error);
+            showNotification('Redemption failed', 'error');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error redeeming reward:', error);
       showNotification('Redemption failed', 'error');
     } finally {
       setLoading(false);
