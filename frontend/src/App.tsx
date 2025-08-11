@@ -251,6 +251,78 @@ export default function App() {
     console.log('Reward redemption requested:', reward.name, 'Cost:', reward.pointsCost);
   };
 
+  const createDemoRewards = async () => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Get user's MerchantCap
+      const objects = await loyaltyService.client.getOwnedObjects({
+        owner: currentAccount.address,
+        options: { showType: true, showContent: true },
+      });
+
+      const merchantCapObj = objects.data.find(obj => 
+        obj.data?.type?.includes('MerchantCap')
+      );
+
+      if (!merchantCapObj?.data?.objectId) {
+        showNotification('MerchantCap not found. Please register as merchant first.', 'error');
+        return;
+      }
+
+      // Create demo rewards one by one
+      const demoRewards = [
+        { name: 'Free Coffee', description: 'Redeem for any coffee', cost: 100, imageUrl: '☕', supply: 50 },
+        { name: 'Pastry Combo', description: 'Coffee + Pastry', cost: 150, imageUrl: '🥐', supply: 30 },
+        { name: '10% Off Coupon', description: 'Valid on all items', cost: 200, imageUrl: '🎫', supply: 100 }
+      ];
+
+      for (const reward of demoRewards) {
+        const tx = loyaltyService.createRewardTemplateTransaction(
+          merchantCapObj.data.objectId,
+          reward.name,
+          reward.description,
+          reward.cost,
+          reward.imageUrl,
+          reward.supply
+        );
+        
+        await new Promise((resolve, reject) => {
+          signAndExecuteTransaction(
+            {
+              transactionBlock: tx as any,
+            },
+            {
+              onSuccess: (_result: any) => {
+                console.log(`Created reward: ${reward.name}`);
+                resolve(true);
+              },
+              onError: (error: any) => {
+                console.error(`Failed to create ${reward.name}:`, error);
+                reject(error);
+              },
+            }
+          );
+        });
+
+        // Small delay between transactions
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      showNotification('Demo reward templates created successfully! 🎉', 'success');
+    } catch (error) {
+      console.error('Error creating demo rewards:', error);
+      showNotification('Failed to create demo rewards', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
 
@@ -297,6 +369,7 @@ export default function App() {
             loading={loading}
             issuePoints={issuePoints}
             registerMerchant={registerMerchant}
+            createDemoRewards={createDemoRewards}
           />
         )}
         {currentTab === 'profile' && (

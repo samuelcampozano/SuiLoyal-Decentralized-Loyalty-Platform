@@ -7,6 +7,7 @@ interface MerchantTabProps {
   loading: boolean;
   issuePoints: (amount: number) => void;
   registerMerchant: (name: string, description: string) => void;
+  createDemoRewards: () => void;
 }
 
 export const MerchantTab: FC<MerchantTabProps> = ({
@@ -15,6 +16,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   loading,
   issuePoints,
   registerMerchant,
+  createDemoRewards,
 }) => (
   <div className="space-y-6">
     <div className="bg-white rounded-xl p-6 shadow-lg">
@@ -30,6 +32,20 @@ export const MerchantTab: FC<MerchantTabProps> = ({
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
         >
           Register as Demo Merchant
+        </button>
+      </div>
+
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+        <h3 className="font-bold text-lg mb-2">Create Reward Templates</h3>
+        <p className="text-sm text-purple-800 mb-4">
+          Create on-chain reward templates that customers can redeem with their points
+        </p>
+        <button
+          onClick={createDemoRewards}
+          disabled={!isConnected || loading}
+          className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
+        >
+          Create Demo Rewards (Coffee, Pastry, Coupon)
         </button>
       </div>
 
