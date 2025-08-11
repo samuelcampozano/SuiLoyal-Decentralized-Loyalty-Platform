@@ -1,16 +1,10 @@
-import { getFullnodeUrl, SuiClient } from '@mysten/sui.js/client'
-
+// Future: Sui client integration for wallet connectivity
 export function getClient() {
-  const url = getFullnodeUrl('devnet')
-  return new SuiClient({ url })
+  // Implementation will be added when integrating with wallet
+  return null;
 }
 
 export async function getClientVersion(): Promise<string> {
-  try {
-    const client = getClient()
-    const v = await client.getLatestSuiSystemState()
-    return `epoch ${v.epoch}`
-  } catch {
-    return 'unavailable'
-  }
+  // Implementation will be added when integrating with wallet
+  return 'unavailable';
 }
