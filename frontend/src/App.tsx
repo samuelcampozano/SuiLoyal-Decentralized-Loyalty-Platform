@@ -240,33 +240,15 @@ export default function App() {
       return;
     }
 
-    try {
-      setLoading(true);
-      
-      const tx = loyaltyService.redeemRewardTransaction(currentAccount.address, reward.id);
-      
-      signAndExecuteTransaction(
-        {
-          transactionBlock: tx as any,
-        },
-        {
-          onSuccess: async (_result: any) => {
-            showNotification(`Successfully redeemed: ${reward.name}! 🎉`, 'success');
-            // Reload user data to reflect new balance
-            await loadUserData(currentAccount.address!);
-          },
-          onError: (error: any) => {
-            console.error('Transaction failed:', error);
-            showNotification('Redemption failed', 'error');
-          },
-        }
-      );
-    } catch (error) {
-      console.error('Error redeeming reward:', error);
-      showNotification('Redemption failed', 'error');
-    } finally {
-      setLoading(false);
-    }
+    // For now, show a message that reward templates need to be created first
+    showNotification('Reward redemption requires RewardTemplate objects to be created on-chain first. This feature will be implemented when merchants create reward templates.', 'info');
+    
+    // TODO: Implement reward template creation and redemption flow
+    // The smart contract requires:
+    // 1. Merchants to create RewardTemplate objects using create_reward_template
+    // 2. RewardTemplate object IDs to be used in redemption transactions
+    
+    console.log('Reward redemption requested:', reward.name, 'Cost:', reward.pointsCost);
   };
 
 

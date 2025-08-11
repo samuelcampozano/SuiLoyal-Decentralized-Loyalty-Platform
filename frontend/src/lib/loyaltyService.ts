@@ -173,14 +173,42 @@ export class LoyaltyService {
   }
 
   // Redeem reward transaction
-  redeemRewardTransaction(_userAddress: string, rewardId: string): Transaction {
+  redeemRewardTransaction(loyaltyAccountId: string, rewardTemplateId: string): Transaction {
     const tx = new Transaction();
     
     tx.moveCall({
       target: `${PACKAGE_ID}::loyalty_system::redeem_reward`,
       arguments: [
-        tx.object(PLATFORM_ID),
-        tx.pure.string(rewardId),
+        tx.object(PLATFORM_ID),           // platform
+        tx.object(loyaltyAccountId),      // account (mutable)
+        tx.object(rewardTemplateId),      // reward_template (mutable)
+        tx.object('0x6'),                 // Clock shared object
+      ],
+    });
+
+    return tx;
+  }
+
+  // Create reward template transaction (for merchants with MerchantCap)
+  createRewardTemplateTransaction(
+    merchantCapId: string, 
+    name: string, 
+    description: string, 
+    pointsCost: number, 
+    imageUrl: string, 
+    totalSupply: number
+  ): Transaction {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::create_reward_template`,
+      arguments: [
+        tx.object(merchantCapId),         // merchant_cap
+        tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(name)))),        // name as vector<u8>
+        tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(description)))), // description as vector<u8>
+        tx.pure(bcs.u64().serialize(pointsCost)), // points_cost
+        tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(imageUrl)))),    // image_url as vector<u8>
+        tx.pure(bcs.u64().serialize(totalSupply)), // total_supply
       ],
     });
 
