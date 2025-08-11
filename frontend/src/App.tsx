@@ -130,16 +130,68 @@ export default function App() {
       return;
     }
 
-    showNotification('Demo points issuance requires merchant registration and proper smart contract integration. This feature will be implemented in the next update.', 'info');
-    
-    // For now, just simulate the points for demo purposes
-    // In production, this would require:
-    // 1. Merchant registration to get MerchantCap
-    // 2. User's LoyaltyAccount object ID
-    // 3. Proper transaction with all required parameters
-    
-    // TODO: Implement proper merchant flow
-    console.log('Points issuance requested:', amount, 'for user:', currentAccount.address);
+    if (!loyaltyAccount) {
+      showNotification('Please create a loyalty account first', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Get user's owned objects to find MerchantCap and LoyaltyAccount
+      const objects = await loyaltyService.client.getOwnedObjects({
+        owner: currentAccount.address,
+        options: { showType: true, showContent: true },
+      });
+
+      // Find MerchantCap
+      const merchantCapObj = objects.data.find(obj => 
+        obj.data?.type?.includes('MerchantCap')
+      );
+
+      // Find LoyaltyAccount
+      const loyaltyAccountObj = objects.data.find(obj => 
+        obj.data?.type?.includes('LoyaltyAccount')
+      );
+
+      if (!merchantCapObj?.data?.objectId) {
+        showNotification('MerchantCap not found. Please register as merchant first.', 'error');
+        return;
+      }
+
+      if (!loyaltyAccountObj?.data?.objectId) {
+        showNotification('LoyaltyAccount not found. Please create loyalty account first.', 'error');
+        return;
+      }
+
+      const tx = await loyaltyService.issuePointsTransaction(
+        merchantCapObj.data.objectId,
+        loyaltyAccountObj.data.objectId,
+        amount
+      );
+      
+      signAndExecuteTransaction(
+        {
+          transactionBlock: tx as any,
+        },
+        {
+          onSuccess: async (_result: any) => {
+            showNotification(`${amount} points issued successfully! 🎉`, 'success');
+            // Reload user data to reflect new balance
+            await loadUserData(currentAccount.address!);
+          },
+          onError: (error: any) => {
+            console.error('Transaction failed:', error);
+            showNotification('Failed to issue points: ' + error.message, 'error');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error issuing points:', error);
+      showNotification('Failed to issue points', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const registerMerchant = async (name: string, description: string) => {

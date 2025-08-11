@@ -4,7 +4,7 @@ import { bcs } from '@mysten/sui/bcs';
 import { PACKAGE_ID, PLATFORM_ID, SUI_CONFIG } from '../config';
 
 export class LoyaltyService {
-  private client: SuiClient;
+  public client: SuiClient;
 
   constructor() {
     this.client = new SuiClient({
@@ -154,16 +154,18 @@ export class LoyaltyService {
     return tx;
   }
 
-  // Issue points transaction (for merchants)
-  issuePointsTransaction(_merchantAddress: string, userAddress: string, amount: number): Transaction {
+  // Issue points transaction (for registered merchants with MerchantCap)
+  async issuePointsTransaction(merchantCapId: string, loyaltyAccountId: string, amount: number): Promise<Transaction> {
     const tx = new Transaction();
     
     tx.moveCall({
       target: `${PACKAGE_ID}::loyalty_system::issue_points`,
       arguments: [
-        tx.object(PLATFORM_ID),
-        tx.pure.address(userAddress),
-        tx.pure.u64(amount),
+        tx.object(PLATFORM_ID),           // platform
+        tx.object(merchantCapId),         // merchant_cap (from your wallet)
+        tx.object(loyaltyAccountId),      // user's loyalty account (mutable)
+        tx.pure(bcs.u64().serialize(amount)),  // amount
+        tx.object('0x6'),                 // Clock shared object
       ],
     });
 

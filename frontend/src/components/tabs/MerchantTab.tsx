@@ -33,9 +33,9 @@ export const MerchantTab: FC<MerchantTabProps> = ({
         </button>
       </div>
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-        <p className="text-sm text-yellow-800">
-          Note: Points issuance requires merchant registration and proper MerchantCap. This will be fully implemented in the next update.
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-green-800">
+          🎉 Ready for points issuance! If you've registered as a merchant and created a loyalty account, you can now issue points using the buttons below.
         </p>
       </div>
 
