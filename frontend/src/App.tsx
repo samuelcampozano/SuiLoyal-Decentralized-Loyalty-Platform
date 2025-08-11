@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSignAndExecuteTransactionBlock } from '@mysten/dapp-kit';
 import { Navigation } from './components/Navigation';
 import { Notification } from './components/Notification';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -14,7 +14,7 @@ import { loyaltyService } from './lib/loyaltyService';
 
 export default function App() {
   const currentAccount = useCurrentAccount();
-  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransactionBlock();
   const [currentTab, setCurrentTab] = useState('home');
   const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
   const [pointsBalance, setPointsBalance] = useState(0);
@@ -75,7 +75,7 @@ export default function App() {
       const txHistory = await loyaltyService.getUserTransactionHistory(userAddress);
       setTransactions(txHistory.map(tx => ({
         id: tx.id,
-        type: tx.type,
+        type: tx.type === 'other' ? 'earned' : tx.type,
         merchant: 'On-chain Transaction',
         amount: 0, // Would need to be parsed from transaction data
         date: tx.timestamp
@@ -102,15 +102,15 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transaction: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (result) => {
+          onSuccess: async (_result: any) => {
             showNotification('Loyalty account created successfully!', 'success');
             // Reload user data to reflect new account
             await loadUserData(currentAccount.address!);
           },
-          onError: (error) => {
+          onError: (error: any) => {
             console.error('Transaction failed:', error);
             showNotification('Failed to create account', 'error');
           },
@@ -141,15 +141,15 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transaction: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (result) => {
+          onSuccess: async (_result: any) => {
             showNotification(`${amount} points issued successfully!`, 'success');
             // Reload user data to reflect new balance
             await loadUserData(currentAccount.address!);
           },
-          onError: (error) => {
+          onError: (error: any) => {
             console.error('Transaction failed:', error);
             showNotification('Failed to issue points', 'error');
           },
@@ -181,15 +181,15 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transaction: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (result) => {
+          onSuccess: async (_result: any) => {
             showNotification(`Successfully redeemed: ${reward.name}! 🎉`, 'success');
             // Reload user data to reflect new balance
             await loadUserData(currentAccount.address!);
           },
-          onError: (error) => {
+          onError: (error: any) => {
             console.error('Transaction failed:', error);
             showNotification('Redemption failed', 'error');
           },

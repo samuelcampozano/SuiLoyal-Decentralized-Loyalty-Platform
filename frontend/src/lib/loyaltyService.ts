@@ -30,7 +30,8 @@ export class LoyaltyService {
 
       const loyaltyAccount = objects.data[0];
       if (loyaltyAccount.data?.content && 'fields' in loyaltyAccount.data.content) {
-        return parseInt(loyaltyAccount.data.content.fields.points_balance as string) || 0;
+        const fields = loyaltyAccount.data.content.fields as any;
+        return parseInt(fields.points_balance) || 0;
       }
 
       return 0;
@@ -68,9 +69,8 @@ export class LoyaltyService {
       });
 
       if (platformObject.data?.content && 'fields' in platformObject.data.content) {
-        // Extract merchants from the platform object
-        const merchants = platformObject.data.content.fields.merchants;
-        // Note: This would need to be properly parsed based on the actual structure
+        // Note: Merchants would need to be properly parsed from the platform object
+        // const fields = platformObject.data.content.fields as any;
         return [];
       }
 
@@ -100,9 +100,8 @@ export class LoyaltyService {
 
       // Filter for loyalty-related transactions
       const loyaltyTransactions = transactions.data.filter(tx => {
-        return tx.transaction?.data.transaction.inputs?.some(input => 
-          JSON.stringify(input).includes(PACKAGE_ID)
-        );
+        // Check if transaction involves our package
+        return JSON.stringify(tx).includes(PACKAGE_ID);
       });
 
       return loyaltyTransactions.map(tx => ({
@@ -117,14 +116,14 @@ export class LoyaltyService {
     }
   }
 
-  private determineTransactionType(tx: any): 'earned' | 'redeemed' | 'other' {
+  private determineTransactionType(_tx: any): 'earned' | 'redeemed' | 'other' {
     // This would need to be implemented based on transaction analysis
     // For now, return a default type
     return 'other';
   }
 
   // Create a loyalty account transaction
-  createLoyaltyAccountTransaction(userAddress: string): Transaction {
+  createLoyaltyAccountTransaction(_userAddress: string): Transaction {
     const tx = new Transaction();
     
     tx.moveCall({
@@ -138,7 +137,7 @@ export class LoyaltyService {
   }
 
   // Issue points transaction (for merchants)
-  issuePointsTransaction(merchantAddress: string, userAddress: string, amount: number): Transaction {
+  issuePointsTransaction(_merchantAddress: string, userAddress: string, amount: number): Transaction {
     const tx = new Transaction();
     
     tx.moveCall({
@@ -154,7 +153,7 @@ export class LoyaltyService {
   }
 
   // Redeem reward transaction
-  redeemRewardTransaction(userAddress: string, rewardId: string): Transaction {
+  redeemRewardTransaction(_userAddress: string, rewardId: string): Transaction {
     const tx = new Transaction();
     
     tx.moveCall({
