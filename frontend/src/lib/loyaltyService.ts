@@ -181,8 +181,10 @@ export class LoyaltyService {
           showEffects: true,
           showInput: true,
           showEvents: true,
+          showObjectChanges: true,
         },
-        limit: 50,
+        limit: 100,
+        order: 'descending',
       });
 
       // Filter for loyalty-related transactions
@@ -191,12 +193,18 @@ export class LoyaltyService {
         return JSON.stringify(tx).includes(PACKAGE_ID);
       });
 
-      return loyaltyTransactions.map(tx => ({
-        id: tx.digest,
-        type: this.determineTransactionType(tx),
-        timestamp: tx.timestampMs ? new Date(parseInt(tx.timestampMs)).toISOString() : new Date().toISOString(),
-        digest: tx.digest,
-      }));
+      return loyaltyTransactions.map(tx => {
+        const txType = this.determineTransactionType(tx);
+        const amount = this.extractTransactionAmount(tx, txType);
+        
+        return {
+          id: tx.digest,
+          type: txType,
+          amount: amount,
+          timestamp: tx.timestampMs ? new Date(parseInt(tx.timestampMs)).toISOString() : new Date().toISOString(),
+          digest: tx.digest,
+        };
+      });
     } catch (error) {
       console.error('Error fetching transaction history:', error);
       return [];
@@ -208,15 +216,46 @@ export class LoyaltyService {
       const txString = JSON.stringify(tx);
       
       // Check for specific function calls in the transaction
-      if (txString.includes('issue_points')) {
+      if (txString.includes('issue_points') || txString.includes('::loyalty_system::issue_points')) {
         return 'earned';
-      } else if (txString.includes('redeem_reward')) {
+      } else if (txString.includes('redeem_reward') || txString.includes('::loyalty_system::redeem_reward')) {
         return 'redeemed';
+      } else if (txString.includes('create_loyalty_account') || txString.includes('register_merchant') || txString.includes('create_reward_template')) {
+        return 'other';
       }
       
       return 'other';
     } catch {
       return 'other';
+    }
+  }
+
+  // Extract transaction amount from transaction data
+  private extractTransactionAmount(tx: any, type: 'earned' | 'redeemed' | 'other'): number {
+    try {
+      // Look for amount in transaction input
+      if (tx.transaction?.data?.transaction?.transactions) {
+        for (const transaction of tx.transaction.data.transaction.transactions) {
+          if (transaction.MoveCall?.arguments) {
+            for (const arg of transaction.MoveCall.arguments) {
+              if (arg.Input !== undefined && typeof arg.Input === 'number') {
+                const value = tx.transaction.data.transaction.inputs[arg.Input];
+                if (value?.type === 'pure' && value.valueType === 'u64') {
+                  const amount = parseInt(value.value);
+                  if (amount > 0 && amount < 10000) { // Reasonable points range
+                    return type === 'redeemed' ? -amount : amount;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Fallback to estimated amounts
+      return type === 'earned' ? 50 : type === 'redeemed' ? -100 : 0;
+    } catch {
+      return type === 'earned' ? 50 : type === 'redeemed' ? -100 : 0;
     }
   }
 

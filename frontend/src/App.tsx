@@ -108,7 +108,7 @@ export default function App() {
         id: tx.id,
         type: tx.type === 'other' ? 'earned' : tx.type,
         merchant: tx.type === 'earned' ? 'Points Earned' : tx.type === 'redeemed' ? 'Reward Redeemed' : 'Blockchain Activity',
-        amount: tx.type === 'earned' ? 50 : tx.type === 'redeemed' ? -100 : 0, // Estimated amounts
+        amount: tx.amount || 0, // Use real transaction amount
         date: tx.timestamp,
         reward: tx.type === 'redeemed' ? 'Reward Item' : undefined
       }));
@@ -223,7 +223,9 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification(`${amount} points issued successfully! 🎉`, 'success');
-            // Reload user data to reflect new balance
+            // Small delay for blockchain settlement
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Reload user data to reflect new balance and transactions
             await loadUserData(currentAccount.address!);
           },
           onError: (error: any) => {
@@ -320,6 +322,8 @@ export default function App() {
           {
             onSuccess: async (_result: any) => {
               showNotification(`Successfully redeemed: ${reward.name}! 🎉`, 'success');
+              // Small delay for blockchain settlement
+              await new Promise(resolve => setTimeout(resolve, 2000));
               // Reload user data and blockchain data to reflect changes
               await loadUserData(currentAccount.address!);
               await loadBlockchainData();
