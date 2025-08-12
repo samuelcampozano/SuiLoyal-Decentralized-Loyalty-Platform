@@ -174,50 +174,26 @@ export class LoyaltyService {
     console.log('📦 Looking for package ID:', PACKAGE_ID);
     
     try {
-      // Try both approaches: by address and by package
-      const [addressTransactions, packageTransactions] = await Promise.all([
-        // Query by user address
-        this.client.queryTransactionBlocks({
-          filter: {
-            FromOrToAddress: {
-              addr: userAddress,
-            },
+      // Query by package only (since FromOrToAddress is not supported)
+      const packageTransactions = await this.client.queryTransactionBlocks({
+        filter: {
+          MoveFunction: {
+            package: PACKAGE_ID,
           },
-          options: {
-            showEffects: true,
-            showInput: true,
-            showEvents: true,
-            showObjectChanges: true,
-          },
-          limit: 50,
-          order: 'descending',
-        }),
-        // Query by package
-        this.client.queryTransactionBlocks({
-          filter: {
-            MoveFunction: {
-              package: PACKAGE_ID,
-            },
-          },
-          options: {
-            showEffects: true,
-            showInput: true,
-            showEvents: true,
-            showObjectChanges: true,
-          },
-          limit: 50,
-          order: 'descending',
-        })
-      ]);
+        },
+        options: {
+          showEffects: true,
+          showInput: true,
+          showEvents: true,
+          showObjectChanges: true,
+        },
+        limit: 100,
+        order: 'descending',
+      });
 
-      console.log('📊 Address transactions found:', addressTransactions.data.length);
       console.log('📦 Package transactions found:', packageTransactions.data.length);
 
-      // Combine and deduplicate transactions
-      const allTransactions = [...addressTransactions.data, ...packageTransactions.data];
-      const uniqueTransactions = allTransactions.filter((tx, index, self) =>
-        index === self.findIndex(t => t.digest === tx.digest)
-      );
+      const uniqueTransactions = packageTransactions.data;
 
       console.log('🔗 Combined unique transactions:', uniqueTransactions.length);
       
@@ -225,25 +201,32 @@ export class LoyaltyService {
         console.log('🔍 Sample transaction structure:', JSON.stringify(uniqueTransactions[0], null, 2));
       }
 
-      // Filter for transactions that involve both the user and loyalty functions
+      // Filter for transactions that involve the user
       const loyaltyTransactions = uniqueTransactions.filter(tx => {
         const txString = JSON.stringify(tx);
-        const hasPackageId = txString.includes(PACKAGE_ID);
-        const hasLoyaltyFunction = txString.includes('loyalty_system');
-        const involvesUser = txString.includes(userAddress);
         
-        const isLoyaltyTx = (hasPackageId || hasLoyaltyFunction) && involvesUser;
+        // Check multiple ways the user could be involved
+        const involvesUser = 
+          txString.includes(userAddress) ||                    // Direct address match
+          tx.transaction?.data?.sender === userAddress ||      // Transaction sender
+          tx.effects?.gasObject?.owner?.AddressOwner === userAddress; // Gas payer
         
-        if (isLoyaltyTx) {
+        if (involvesUser) {
           console.log('✅ Found user loyalty transaction:', tx.digest, {
-            hasPackageId,
-            hasLoyaltyFunction,
-            involvesUser,
-            timestamp: tx.timestampMs
+            sender: tx.transaction?.data?.sender,
+            gasOwner: tx.effects?.gasObject?.owner,
+            timestamp: tx.timestampMs,
+            functions: this.extractMoveCallFunctions(tx)
+          });
+        } else {
+          console.log('❌ Transaction does not involve user:', tx.digest, {
+            sender: tx.transaction?.data?.sender,
+            userAddress,
+            gasOwner: tx.effects?.gasObject?.owner
           });
         }
         
-        return isLoyaltyTx;
+        return involvesUser;
       });
 
       console.log('🎯 Loyalty transactions found:', loyaltyTransactions.length);
@@ -286,17 +269,41 @@ export class LoyaltyService {
     }
   }
 
+  private extractMoveCallFunctions(tx: any): string[] {
+    const functions: string[] = [];
+    try {
+      if (tx.transaction?.data?.transaction?.transactions) {
+        for (const transaction of tx.transaction.data.transaction.transactions) {
+          if (transaction.MoveCall?.function) {
+            functions.push(transaction.MoveCall.function);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Error extracting move call functions:', error);
+    }
+    return functions;
+  }
+
   private determineTransactionType(tx: any): 'earned' | 'redeemed' | 'other' {
     try {
-      const txString = JSON.stringify(tx);
+      // First try to extract function names directly
+      const functions = this.extractMoveCallFunctions(tx);
       
-      // Check for specific function calls in the transaction
-      if (txString.includes('issue_points') || txString.includes('::loyalty_system::issue_points')) {
+      for (const func of functions) {
+        if (func === 'issue_points') {
+          return 'earned';
+        } else if (func === 'redeem_reward') {
+          return 'redeemed';
+        }
+      }
+      
+      // Fallback to string search
+      const txString = JSON.stringify(tx);
+      if (txString.includes('issue_points')) {
         return 'earned';
-      } else if (txString.includes('redeem_reward') || txString.includes('::loyalty_system::redeem_reward')) {
+      } else if (txString.includes('redeem_reward')) {
         return 'redeemed';
-      } else if (txString.includes('create_loyalty_account') || txString.includes('register_merchant') || txString.includes('create_reward_template')) {
-        return 'other';
       }
       
       return 'other';
