@@ -132,10 +132,21 @@ export class LoyaltyService {
     }
   }
 
-  private determineTransactionType(_tx: any): 'earned' | 'redeemed' | 'other' {
-    // This would need to be implemented based on transaction analysis
-    // For now, return a default type
-    return 'other';
+  private determineTransactionType(tx: any): 'earned' | 'redeemed' | 'other' {
+    try {
+      const txString = JSON.stringify(tx);
+      
+      // Check for specific function calls in the transaction
+      if (txString.includes('issue_points')) {
+        return 'earned';
+      } else if (txString.includes('redeem_reward')) {
+        return 'redeemed';
+      }
+      
+      return 'other';
+    } catch {
+      return 'other';
+    }
   }
 
   // Create a loyalty account transaction  

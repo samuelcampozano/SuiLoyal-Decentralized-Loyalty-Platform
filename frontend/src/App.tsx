@@ -59,7 +59,7 @@ export default function App() {
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), 6000);
   };
 
   // Load user data when wallet connects/disconnects
@@ -88,13 +88,28 @@ export default function App() {
       
       // Load transaction history
       const txHistory = await loyaltyService.getUserTransactionHistory(userAddress);
-      setTransactions(txHistory.map(tx => ({
+      const mappedTransactions = txHistory.map(tx => ({
         id: tx.id,
         type: tx.type === 'other' ? 'earned' : tx.type,
-        merchant: 'On-chain Transaction',
-        amount: 0, // Would need to be parsed from transaction data
-        date: tx.timestamp
-      })));
+        merchant: tx.type === 'earned' ? 'Points Earned' : tx.type === 'redeemed' ? 'Reward Redeemed' : 'Blockchain Activity',
+        amount: tx.type === 'earned' ? 50 : tx.type === 'redeemed' ? -100 : 0, // Estimated amounts
+        date: tx.timestamp,
+        reward: tx.type === 'redeemed' ? 'Reward Item' : undefined
+      }));
+
+      // If no transactions, show a placeholder message about creating activity
+      if (mappedTransactions.length === 0 && loyaltyAccount) {
+        mappedTransactions.push({
+          id: 'placeholder-1',
+          type: 'earned' as 'earned',
+          merchant: 'Demo Activity',
+          amount: 0,
+          date: new Date().toISOString(),
+          reward: undefined
+        });
+      }
+
+      setTransactions(mappedTransactions);
       
     } catch (error) {
       console.error('Error loading user data:', error);
