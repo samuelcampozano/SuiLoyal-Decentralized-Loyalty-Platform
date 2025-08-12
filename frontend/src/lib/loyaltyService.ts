@@ -136,15 +136,16 @@ export class LoyaltyService {
 
                 if (rewardObj.data?.content && 'fields' in rewardObj.data.content) {
                   const fields = rewardObj.data.content.fields as any;
+                  console.log('Raw reward fields:', fields);
+                  
                   rewards.push({
                     id: change.objectId,
-                    name: fields.name ? new TextDecoder().decode(new Uint8Array(fields.name)) : 'Unknown Reward',
-                    description: fields.description ? new TextDecoder().decode(new Uint8Array(fields.description)) : 'No description',
-                    pointsCost: parseInt(fields.points_required) || 0,
-                    imageUrl: fields.image_url ? new TextDecoder().decode(new Uint8Array(fields.image_url)) : '🎁',
-                    availableSupply: parseInt(fields.available_supply) || 0,
-                    totalSupply: parseInt(fields.total_supply) || 0,
-                    isActive: fields.is_active !== false,
+                    merchantId: fields.merchant || 'unknown',
+                    name: fields.name || 'Unknown Reward',
+                    description: fields.description || 'No description',
+                    pointsCost: parseInt(fields.points_cost) || 0,
+                    imageUrl: fields.image_url || '🎁',
+                    remaining: parseInt(fields.remaining_supply) || 0,
                   });
                 }
               } catch (objError) {

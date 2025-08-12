@@ -283,7 +283,7 @@ export default function App() {
     }
 
     if (pointsBalance < reward.pointsCost) {
-      showNotification('Insufficient points!', 'error');
+      showNotification(`Insufficient points! You have ${pointsBalance} but need ${reward.pointsCost} points.`, 'error');
       return;
     }
 
@@ -326,7 +326,17 @@ export default function App() {
             },
             onError: (error: any) => {
               console.error('Redemption failed:', error);
-              showNotification('Redemption failed: ' + error.message, 'error');
+              let errorMessage = 'Redemption failed';
+              if (error.message?.includes('1001')) {
+                errorMessage = 'Insufficient points for this reward';
+              } else if (error.message?.includes('1002')) {
+                errorMessage = 'Reward not found or inactive';
+              } else if (error.message?.includes('1006')) {
+                errorMessage = 'Reward is out of stock';
+              } else if (error.message) {
+                errorMessage += ': ' + error.message;
+              }
+              showNotification(errorMessage, 'error');
             },
           }
         );

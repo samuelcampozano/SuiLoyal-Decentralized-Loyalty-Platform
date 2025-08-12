@@ -97,25 +97,36 @@ export const MerchantTab: FC<MerchantTabProps> = ({
       </div>
 
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-        <p className="text-sm text-green-800">
-          🎉 Ready for points issuance! If you've registered as a merchant and created a loyalty account, you can now issue points using the buttons below.
+        <h3 className="font-bold text-lg mb-2 text-green-800">Issue Points for Testing</h3>
+        <p className="text-sm text-green-700 mb-2">
+          🎉 As a merchant, you can issue points to your own loyalty account for testing reward redemption.
+        </p>
+        <p className="text-xs text-green-600">
+          💡 Issue points to yourself, then go to the Rewards tab to test redeeming rewards!
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        <button
-          onClick={() => issuePoints(50)}
-          disabled={!isConnected || loading}
-          className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
-        >
-          Issue 50 Demo Points
-        </button>
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
         <button
           onClick={() => issuePoints(100)}
-          disabled={!isConnected || loading}
+          disabled={!isConnected || loading || !isMerchant}
+          className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
+        >
+          Issue 100 Points
+        </button>
+        <button
+          onClick={() => issuePoints(200)}
+          disabled={!isConnected || loading || !isMerchant}
           className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
         >
-          Issue 100 Demo Points
+          Issue 200 Points
+        </button>
+        <button
+          onClick={() => issuePoints(500)}
+          disabled={!isConnected || loading || !isMerchant}
+          className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
+        >
+          Issue 500 Points
         </button>
       </div>
 
