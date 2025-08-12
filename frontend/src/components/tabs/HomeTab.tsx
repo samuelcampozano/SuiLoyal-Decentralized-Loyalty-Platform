@@ -8,6 +8,7 @@ interface HomeTabProps {
   loading: boolean;
   transactions: Transaction[];
   createLoyaltyAccount: () => void;
+  refreshData?: () => void;
 }
 
 export const HomeTab: FC<HomeTabProps> = ({
@@ -16,6 +17,7 @@ export const HomeTab: FC<HomeTabProps> = ({
   loading,
   transactions,
   createLoyaltyAccount,
+  refreshData,
 }) => (
   <div className="space-y-8">
     <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8">
@@ -60,7 +62,18 @@ export const HomeTab: FC<HomeTabProps> = ({
 
     {isConnected && (
       <div className="bg-white rounded-xl p-6 shadow-lg">
-        <h3 className="font-bold text-xl mb-4">Recent Activity</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-xl">Recent Activity</h3>
+          {refreshData && (
+            <button
+              onClick={refreshData}
+              disabled={loading}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-semibold disabled:bg-gray-300 transition-colors"
+            >
+              🔄 Refresh
+            </button>
+          )}
+        </div>
         <div className="space-y-3">
           {transactions.length === 0 ? (
             <div className="text-center py-8 text-gray-500">

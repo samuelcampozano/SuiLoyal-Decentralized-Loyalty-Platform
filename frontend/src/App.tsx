@@ -481,6 +481,7 @@ export default function App() {
             loading={loading}
             transactions={transactions}
             createLoyaltyAccount={createLoyaltyAccount}
+            refreshData={() => currentAccount?.address && loadUserData(currentAccount.address)}
           />
         )}
         {currentTab === 'rewards' && (

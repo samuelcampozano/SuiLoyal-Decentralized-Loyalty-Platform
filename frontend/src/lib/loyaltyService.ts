@@ -170,32 +170,94 @@ export class LoyaltyService {
 
   // Get transaction history for a user
   async getUserTransactionHistory(userAddress: string) {
+    console.log('🔍 Fetching transaction history for:', userAddress);
+    console.log('📦 Looking for package ID:', PACKAGE_ID);
+    
     try {
-      const transactions = await this.client.queryTransactionBlocks({
-        filter: {
-          FromOrToAddress: {
-            addr: userAddress,
+      // Try both approaches: by address and by package
+      const [addressTransactions, packageTransactions] = await Promise.all([
+        // Query by user address
+        this.client.queryTransactionBlocks({
+          filter: {
+            FromOrToAddress: {
+              addr: userAddress,
+            },
           },
-        },
-        options: {
-          showEffects: true,
-          showInput: true,
-          showEvents: true,
-          showObjectChanges: true,
-        },
-        limit: 100,
-        order: 'descending',
+          options: {
+            showEffects: true,
+            showInput: true,
+            showEvents: true,
+            showObjectChanges: true,
+          },
+          limit: 50,
+          order: 'descending',
+        }),
+        // Query by package
+        this.client.queryTransactionBlocks({
+          filter: {
+            MoveFunction: {
+              package: PACKAGE_ID,
+            },
+          },
+          options: {
+            showEffects: true,
+            showInput: true,
+            showEvents: true,
+            showObjectChanges: true,
+          },
+          limit: 50,
+          order: 'descending',
+        })
+      ]);
+
+      console.log('📊 Address transactions found:', addressTransactions.data.length);
+      console.log('📦 Package transactions found:', packageTransactions.data.length);
+
+      // Combine and deduplicate transactions
+      const allTransactions = [...addressTransactions.data, ...packageTransactions.data];
+      const uniqueTransactions = allTransactions.filter((tx, index, self) =>
+        index === self.findIndex(t => t.digest === tx.digest)
+      );
+
+      console.log('🔗 Combined unique transactions:', uniqueTransactions.length);
+      
+      if (uniqueTransactions.length > 0) {
+        console.log('🔍 Sample transaction structure:', JSON.stringify(uniqueTransactions[0], null, 2));
+      }
+
+      // Filter for transactions that involve both the user and loyalty functions
+      const loyaltyTransactions = uniqueTransactions.filter(tx => {
+        const txString = JSON.stringify(tx);
+        const hasPackageId = txString.includes(PACKAGE_ID);
+        const hasLoyaltyFunction = txString.includes('loyalty_system');
+        const involvesUser = txString.includes(userAddress);
+        
+        const isLoyaltyTx = (hasPackageId || hasLoyaltyFunction) && involvesUser;
+        
+        if (isLoyaltyTx) {
+          console.log('✅ Found user loyalty transaction:', tx.digest, {
+            hasPackageId,
+            hasLoyaltyFunction,
+            involvesUser,
+            timestamp: tx.timestampMs
+          });
+        }
+        
+        return isLoyaltyTx;
       });
 
-      // Filter for loyalty-related transactions
-      const loyaltyTransactions = transactions.data.filter(tx => {
-        // Check if transaction involves our package
-        return JSON.stringify(tx).includes(PACKAGE_ID);
-      });
+      console.log('🎯 Loyalty transactions found:', loyaltyTransactions.length);
 
-      return loyaltyTransactions.map(tx => {
+      const mappedTransactions = loyaltyTransactions.map(tx => {
         const txType = this.determineTransactionType(tx);
         const amount = this.extractTransactionAmount(tx, txType);
+        
+        console.log('🔄 Processing transaction:', {
+          digest: tx.digest,
+          type: txType,
+          amount: amount,
+          timestamp: tx.timestampMs
+        });
         
         return {
           id: tx.digest,
@@ -205,8 +267,21 @@ export class LoyaltyService {
           digest: tx.digest,
         };
       });
+
+      console.log('📋 Final mapped transactions:', mappedTransactions);
+      
+      // If no transactions found, return a helpful message
+      if (mappedTransactions.length === 0) {
+        console.log('⚠️ No loyalty transactions found. This could mean:');
+        console.log('1. Recent transactions haven\'t been indexed yet');
+        console.log('2. Transactions were made on a different network');
+        console.log('3. Transactions are still settling on the blockchain');
+        console.log('4. No loyalty transactions have been made for this address');
+      }
+      
+      return mappedTransactions;
     } catch (error) {
-      console.error('Error fetching transaction history:', error);
+      console.error('❌ Error fetching transaction history:', error);
       return [];
     }
   }
