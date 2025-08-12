@@ -5,6 +5,8 @@ interface MerchantTabProps {
   merchants: Merchant[];
   isConnected: boolean;
   loading: boolean;
+  isMerchant: boolean;
+  hasCreatedRewards: boolean;
   issuePoints: (amount: number) => void;
   registerMerchant: (name: string, description: string) => void;
   createDemoRewards: () => void;
@@ -14,6 +16,8 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   merchants,
   isConnected,
   loading,
+  isMerchant,
+  hasCreatedRewards,
   issuePoints,
   registerMerchant,
   createDemoRewards,
@@ -21,32 +25,75 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   <div className="space-y-6">
     <div className="bg-white rounded-xl p-6 shadow-lg">
       <h2 className="text-2xl font-bold mb-4">🏪 Merchant Portal</h2>
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="font-bold text-lg mb-2">Register as Merchant</h3>
-        <p className="text-sm text-blue-800 mb-4">
-          Register your business to issue loyalty points to customers
-        </p>
-        <button
-          onClick={() => registerMerchant('Demo Merchant', 'A demo merchant for testing')}
-          disabled={!isConnected || loading}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
-        >
-          Register as Demo Merchant
-        </button>
+      <div className={`${isMerchant ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4 mb-6`}>
+        {isMerchant ? (
+          <>
+            <h3 className="font-bold text-lg mb-2 text-green-800">✅ Merchant Status</h3>
+            <p className="text-sm text-green-700 mb-2">
+              🎉 You are registered as a Demo Merchant and can now issue points to customers!
+            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">
+                Merchant Active
+              </span>
+              <span className="text-green-600">Ready to issue points and create rewards</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="font-bold text-lg mb-2">Register as Merchant</h3>
+            <p className="text-sm text-blue-800 mb-4">
+              Register your business to issue loyalty points to customers
+            </p>
+            <button
+              onClick={() => registerMerchant('Demo Merchant', 'A demo merchant for testing')}
+              disabled={!isConnected || loading}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
+            >
+              Register as Demo Merchant
+            </button>
+          </>
+        )}
       </div>
 
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-        <h3 className="font-bold text-lg mb-2">Create Reward Templates</h3>
-        <p className="text-sm text-purple-800 mb-4">
-          Create on-chain reward templates that customers can redeem with their points
-        </p>
-        <button
-          onClick={createDemoRewards}
-          disabled={!isConnected || loading}
-          className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
-        >
-          Create Demo Rewards (Coffee, Pastry, Coupon)
-        </button>
+      <div className={`${hasCreatedRewards ? 'bg-green-50 border-green-200' : 'bg-purple-50 border-purple-200'} border rounded-lg p-4 mb-6`}>
+        <h3 className="font-bold text-lg mb-2">
+          {hasCreatedRewards ? '✅ Reward Templates Created' : 'Create Reward Templates'}
+        </h3>
+        {hasCreatedRewards ? (
+          <div>
+            <p className="text-sm text-green-700 mb-2">
+              🎉 Demo reward templates have been created successfully! Customers can now redeem:
+            </p>
+            <ul className="text-sm text-green-600 ml-4 mb-2">
+              <li>• ☕ Free Coffee (100 points)</li>
+              <li>• 🥐 Pastry Combo (150 points)</li>
+              <li>• 🎫 10% Off Coupon (200 points)</li>
+            </ul>
+            <div className="flex items-center gap-2">
+              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
+                Rewards Active
+              </span>
+              <span className="text-green-600 text-xs">Available in Rewards tab</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-purple-800 mb-4">
+              {isMerchant 
+                ? 'Create on-chain reward templates that customers can redeem with their points'
+                : 'You must register as a merchant first to create reward templates'
+              }
+            </p>
+            <button
+              onClick={createDemoRewards}
+              disabled={!isConnected || loading || !isMerchant || hasCreatedRewards}
+              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
+            >
+              {!isMerchant ? 'Register as Merchant First' : 'Create Demo Rewards (Coffee, Pastry, Coupon)'}
+            </button>
+          </>
+        )}
       </div>
 
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">

@@ -59,6 +59,23 @@ export class LoyaltyService {
     }
   }
 
+  // Check if user has merchant capabilities
+  async hasMerchantCap(userAddress: string): Promise<boolean> {
+    try {
+      const objects = await this.client.getOwnedObjects({
+        owner: userAddress,
+        filter: {
+          StructType: `${PACKAGE_ID}::loyalty_system::MerchantCap`,
+        },
+      });
+
+      return objects.data.length > 0;
+    } catch (error) {
+      console.error('Error checking merchant cap:', error);
+      return false;
+    }
+  }
+
   // Get registered merchants from the platform
   async getMerchants() {
     try {
@@ -85,14 +102,67 @@ export class LoyaltyService {
   // Get reward templates from the blockchain
   async getRewardTemplates() {
     try {
-      // Query objects by type using multiGetObjects with specific IDs would be ideal
-      // For now, return empty array since we need object IDs to query shared objects
-      // In production, we'd track RewardTemplate IDs from events or maintain an index
+      // Query recent transactions to find RewardTemplate creation events
+      const transactions = await this.client.queryTransactionBlocks({
+        filter: {
+          MoveFunction: {
+            package: PACKAGE_ID,
+            module: 'loyalty_system',
+            function: 'create_reward_template',
+          },
+        },
+        options: {
+          showEffects: true,
+          showObjectChanges: true,
+        },
+        limit: 50,
+      });
+
+      const rewards = [];
       
-      console.log('RewardTemplate querying not fully implemented - need object IDs from events');
-      return [];
+      for (const tx of transactions.data) {
+        if (tx.objectChanges) {
+          for (const change of tx.objectChanges) {
+            if (change.type === 'created' && 
+                change.objectType?.includes('RewardTemplate')) {
+              try {
+                // Get the reward template object details
+                const rewardObj = await this.client.getObject({
+                  id: change.objectId,
+                  options: {
+                    showContent: true,
+                  },
+                });
+
+                if (rewardObj.data?.content && 'fields' in rewardObj.data.content) {
+                  const fields = rewardObj.data.content.fields as any;
+                  rewards.push({
+                    id: change.objectId,
+                    name: fields.name ? new TextDecoder().decode(new Uint8Array(fields.name)) : 'Unknown Reward',
+                    description: fields.description ? new TextDecoder().decode(new Uint8Array(fields.description)) : 'No description',
+                    pointsCost: parseInt(fields.points_required) || 0,
+                    imageUrl: fields.image_url ? new TextDecoder().decode(new Uint8Array(fields.image_url)) : '🎁',
+                    availableSupply: parseInt(fields.available_supply) || 0,
+                    totalSupply: parseInt(fields.total_supply) || 0,
+                    isActive: fields.is_active !== false,
+                  });
+                }
+              } catch (objError) {
+                console.warn('Could not fetch reward template:', change.objectId, objError);
+              }
+            }
+          }
+        }
+      }
+
+      console.log('Loaded reward templates from transactions:', rewards);
+      return rewards;
     } catch (error) {
       console.error('Error fetching reward templates:', error);
+      // Fallback: return mock data to show UI works
+      if (error.message?.includes('No transactions found')) {
+        return [];
+      }
       return [];
     }
   }

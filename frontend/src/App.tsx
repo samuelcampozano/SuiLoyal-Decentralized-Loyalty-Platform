@@ -23,6 +23,8 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<NotificationType | null>(null);
+  const [isMerchant, setIsMerchant] = useState(false);
+  const [hasCreatedRewards, setHasCreatedRewards] = useState(false);
 
   // Load blockchain data
   const loadBlockchainData = async () => {
@@ -33,6 +35,14 @@ export default function App() {
       if (rewardTemplates.length > 0) {
         setRewards(rewardTemplates);
         console.log('Loaded real reward templates:', rewardTemplates);
+        
+        // Check if we have the demo rewards created
+        const hasDemo = rewardTemplates.some(r => 
+          r.name.includes('Coffee') || r.name.includes('Pastry') || r.name.includes('Coupon')
+        );
+        if (hasDemo && !hasCreatedRewards) {
+          setHasCreatedRewards(true);
+        }
       } else {
         // Show message that no rewards exist yet
         setRewards([]);
@@ -71,6 +81,8 @@ export default function App() {
       setPointsBalance(0);
       setLoyaltyAccount(null);
       setTransactions([]);
+      setIsMerchant(false);
+      setHasCreatedRewards(false);
     }
   }, [currentAccount]);
 
@@ -85,6 +97,10 @@ export default function App() {
       // Check if user has loyalty account
       const hasAccount = await loyaltyService.hasLoyaltyAccount(userAddress);
       setLoyaltyAccount(hasAccount ? { id: userAddress, created: true } : null);
+      
+      // Check if user is a merchant
+      const merchantStatus = await loyaltyService.hasMerchantCap(userAddress);
+      setIsMerchant(merchantStatus);
       
       // Load transaction history
       const txHistory = await loyaltyService.getUserTransactionHistory(userAddress);
@@ -242,6 +258,7 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification('Successfully registered as merchant!', 'success');
+            setIsMerchant(true);
             // Reload user data
             await loadUserData(currentAccount.address!);
           },
@@ -331,6 +348,16 @@ export default function App() {
       return;
     }
 
+    if (!isMerchant) {
+      showNotification('Please register as merchant first', 'error');
+      return;
+    }
+
+    if (hasCreatedRewards) {
+      showNotification('Demo rewards have already been created!', 'info');
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -372,8 +399,10 @@ export default function App() {
               transactionBlock: tx as any,
             },
             {
-              onSuccess: (_result: any) => {
+              onSuccess: async (_result: any) => {
                 console.log(`Created reward: ${reward.name}`);
+                // Small delay to let blockchain settle
+                await new Promise(settleResolve => setTimeout(settleResolve, 1000));
                 resolve(true);
               },
               onError: (error: any) => {
@@ -389,8 +418,19 @@ export default function App() {
       }
 
       showNotification('Demo reward templates created successfully! 🎉', 'success');
+      setHasCreatedRewards(true);
+      
+      // Wait a bit longer for blockchain to fully settle
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
       // Reload blockchain data to show the new rewards
       await loadBlockchainData();
+      
+      // Force a second reload after another delay to ensure we catch the rewards
+      setTimeout(async () => {
+        await loadBlockchainData();
+        console.log('Secondary reload of blockchain data completed');
+      }, 5000);
     } catch (error) {
       console.error('Error creating demo rewards:', error);
       showNotification('Failed to create demo rewards', 'error');
@@ -443,6 +483,8 @@ export default function App() {
             merchants={merchants}
             isConnected={!!currentAccount}
             loading={loading}
+            isMerchant={isMerchant}
+            hasCreatedRewards={hasCreatedRewards}
             issuePoints={issuePoints}
             registerMerchant={registerMerchant}
             createDemoRewards={createDemoRewards}
