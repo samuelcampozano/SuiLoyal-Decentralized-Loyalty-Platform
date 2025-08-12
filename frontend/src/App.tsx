@@ -106,12 +106,16 @@ export default function App() {
       const txHistory = await loyaltyService.getUserTransactionHistory(userAddress);
       const mappedTransactions = txHistory.map(tx => ({
         id: tx.id,
-        type: tx.type === 'other' ? 'earned' : tx.type,
+        type: tx.type as 'earned' | 'redeemed' | 'other', // Keep the original type from loyaltyService
         merchant: tx.type === 'earned' ? 'Points Earned' : tx.type === 'redeemed' ? 'Reward Redeemed' : 'Blockchain Activity',
         amount: tx.amount || 0, // Use real transaction amount
         date: tx.timestamp,
-        reward: tx.type === 'redeemed' ? 'Reward Item' : undefined
+        reward: tx.type === 'redeemed' ? (tx.rewardName || 'Reward Item') : undefined
       }));
+
+      console.log('🏠 App.tsx - Mapped transactions for UI:', mappedTransactions);
+      console.log('🏠 App.tsx - Total transactions:', mappedTransactions.length);
+      console.log('🏠 App.tsx - Redeemed transactions:', mappedTransactions.filter(t => t.type === 'redeemed'));
 
       // If no transactions, show a placeholder message about creating activity
       if (mappedTransactions.length === 0 && loyaltyAccount) {
@@ -125,6 +129,8 @@ export default function App() {
         });
       }
 
+      console.log('🔄 Setting transactions state with:', mappedTransactions.length, 'transactions');
+      console.log('🔄 Redeemed in final set:', mappedTransactions.filter(t => t.type === 'redeemed').length);
       setTransactions(mappedTransactions);
       
     } catch (error) {

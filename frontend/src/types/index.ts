@@ -1,6 +1,6 @@
 export interface Transaction {
   id: string;
-  type: 'earned' | 'redeemed';
+  type: 'earned' | 'redeemed' | 'other';
   merchant: string;
   amount: number;
   reward?: string;
