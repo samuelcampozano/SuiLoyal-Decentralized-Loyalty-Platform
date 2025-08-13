@@ -35,19 +35,38 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
   const handleSaveEdit = () => {
     if (!editingReward) return;
 
-    const updates: Partial<Reward> = {};
-    
-    if (editingReward.field === 'name') {
-      updates.name = editingReward.value as string;
-    } else if (editingReward.field === 'description') {
-      updates.description = editingReward.value as string;
-    } else if (editingReward.field === 'pointsCost') {
-      updates.pointsCost = Number(editingReward.value);
-    } else if (editingReward.field === 'imageUrl') {
-      updates.imageUrl = editingReward.value as string;
-    }
+    if (editingReward.field === 'supply') {
+      // Handle supply update differently
+      const newSupply = Number(editingReward.value);
+      const currentSupply = rewards.find(r => r.id === editingReward.id)?.remaining || 0;
+      if (newSupply !== currentSupply) {
+        if (newSupply > currentSupply) {
+          // Add supply
+          onUpdateSupply(editingReward.id, newSupply - currentSupply);
+        } else {
+          // Note: We can't reduce supply below current level in this implementation
+          // Could add a separate function for this if needed
+          alert('Cannot reduce supply below current level');
+          setEditingReward(null);
+          return;
+        }
+      }
+    } else {
+      const updates: Partial<Reward> = {};
+      
+      if (editingReward.field === 'name') {
+        updates.name = editingReward.value as string;
+      } else if (editingReward.field === 'description') {
+        updates.description = editingReward.value as string;
+      } else if (editingReward.field === 'pointsCost') {
+        updates.pointsCost = Number(editingReward.value);
+      } else if (editingReward.field === 'imageUrl') {
+        updates.imageUrl = editingReward.value as string;
+      }
 
-    onUpdateReward(editingReward.id, updates);
+      onUpdateReward(editingReward.id, updates);
+    }
+    
     setEditingReward(null);
   };
 
@@ -83,21 +102,41 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
           <input
             type={type}
             value={editingReward.value}
-            onChange={(e) => setEditingReward({
-              ...editingReward,
-              value: type === 'number' ? Number(e.target.value) : e.target.value
-            })}
+            onChange={(e) => {
+              if (type === 'number') {
+                const value = e.target.value;
+                // Allow empty string or valid positive numbers
+                if (value === '' || (/^\d+$/.test(value) && Number(value) >= 0)) {
+                  setEditingReward({
+                    ...editingReward,
+                    value: value === '' ? '' : Number(value)
+                  });
+                }
+              } else {
+                setEditingReward({
+                  ...editingReward,
+                  value: e.target.value
+                });
+              }
+            }}
             className="flex-1 px-2 py-1 border rounded text-sm"
             autoFocus
+            placeholder={type === 'number' ? 'Enter points' : ''}
+            min={type === 'number' ? '1' : undefined}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSaveEdit();
+              if (e.key === 'Enter') {
+                if (type === 'number' && (editingReward.value === '' || Number(editingReward.value) <= 0)) {
+                  return; // Don't save invalid numbers
+                }
+                handleSaveEdit();
+              }
               if (e.key === 'Escape') handleCancelEdit();
             }}
           />
           <button
             onClick={handleSaveEdit}
             className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
-            disabled={loading}
+            disabled={loading || (type === 'number' && (editingReward.value === '' || Number(editingReward.value) <= 0))}
           >
             ✓
           </button>
@@ -185,8 +224,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                 {renderEditableField(reward.id, 'imageUrl', reward.imageUrl, 'Image/Emoji')}
               </div>
               <div>
-                <span className="text-xs text-gray-500 block">Remaining Supply</span>
-                <span className="font-medium text-lg">{reward.remaining}</span>
+                {renderEditableField(reward.id, 'supply', reward.remaining, 'Remaining Supply', 'number')}
               </div>
             </div>
 

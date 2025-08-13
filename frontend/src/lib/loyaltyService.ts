@@ -384,28 +384,50 @@ export class LoyaltyService {
   // Extract transaction amount from transaction data
   private extractTransactionAmount(tx: any, type: 'earned' | 'redeemed' | 'other'): number {
     try {
-      // Look for amount in transaction input
-      if (tx.transaction?.data?.transaction?.transactions) {
-        for (const transaction of tx.transaction.data.transaction.transactions) {
-          if (transaction.MoveCall?.arguments) {
-            for (const arg of transaction.MoveCall.arguments) {
-              if (arg.Input !== undefined && typeof arg.Input === 'number') {
-                const value = tx.transaction.data.transaction.inputs[arg.Input];
-                if (value?.type === 'pure' && value.valueType === 'u64') {
-                  const amount = parseInt(value.value);
-                  if (amount > 0 && amount < 10000) { // Reasonable points range
-                    return type === 'redeemed' ? -amount : amount;
-                  }
-                }
-              }
+      // Look for amount in transaction events first (most reliable)
+      if (tx.events) {
+        for (const event of tx.events) {
+          if (event.type?.includes('PointsIssued') && type === 'earned') {
+            if (event.parsedJson?.amount) {
+              return parseInt(event.parsedJson.amount);
+            }
+          } else if (event.type?.includes('PointsRedeemed') && type === 'redeemed') {
+            if (event.parsedJson?.amount) {
+              return -parseInt(event.parsedJson.amount);
             }
           }
         }
       }
+
+      // Fallback: Look for amount in transaction input
+      if (tx.transaction?.data?.transaction?.transactions) {
+        for (const transaction of tx.transaction.data.transaction.transactions) {
+          if (transaction.MoveCall?.function === 'issue_points' && type === 'earned') {
+            // For issue_points, the amount is usually the 4th argument (after platform, merchant_cap, account)
+            if (transaction.MoveCall.arguments && transaction.MoveCall.arguments.length >= 4) {
+              const amountArg = transaction.MoveCall.arguments[3];
+              if (amountArg?.Input !== undefined && typeof amountArg.Input === 'number') {
+                const value = tx.transaction.data.transaction.inputs[amountArg.Input];
+                if (value?.type === 'pure' && value.valueType === 'u64') {
+                  const amount = parseInt(value.value);
+                  if (amount > 0) {
+                    return amount;
+                  }
+                }
+              }
+            }
+          } else if (transaction.MoveCall?.function === 'redeem_reward' && type === 'redeemed') {
+            // For redemptions, we need to get the cost from the reward template
+            // This is more complex, so we'll rely on events or fallback
+            continue;
+          }
+        }
+      }
       
-      // Fallback to estimated amounts
+      // Final fallback based on transaction type
       return type === 'earned' ? 50 : type === 'redeemed' ? -100 : 0;
-    } catch {
+    } catch (error) {
+      console.warn('Error extracting transaction amount:', error);
       return type === 'earned' ? 50 : type === 'redeemed' ? -100 : 0;
     }
   }

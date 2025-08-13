@@ -120,6 +120,17 @@ module loyalty::loyalty_system {
         points_cost: u64,
     }
 
+    struct RewardUpdated has copy, drop {
+        reward_id: ID,
+        merchant: address,
+        updated_field: String,
+    }
+
+    struct RewardDeleted has copy, drop {
+        reward_id: ID,
+        merchant: address,
+    }
+
     // ===== Init Function =====
     
     fun init(ctx: &mut TxContext) {
@@ -351,6 +362,104 @@ module loyalty::loyalty_system {
         });
         
         transfer::transfer(reward_nft, tx_context::sender(ctx));
+    }
+
+    /// Update reward template name (merchant only)
+    public entry fun update_reward_name(
+        merchant_cap: &MerchantCap,
+        reward_template: &mut RewardTemplate,
+        new_name: vector<u8>,
+    ) {
+        assert!(reward_template.merchant == merchant_cap.merchant_address, ENotAuthorized);
+        reward_template.name = utf8(new_name);
+        
+        event::emit(RewardUpdated {
+            reward_id: object::id(reward_template),
+            merchant: merchant_cap.merchant_address,
+            updated_field: utf8(b"name"),
+        });
+    }
+
+    /// Update reward template description (merchant only)
+    public entry fun update_reward_description(
+        merchant_cap: &MerchantCap,
+        reward_template: &mut RewardTemplate,
+        new_description: vector<u8>,
+    ) {
+        assert!(reward_template.merchant == merchant_cap.merchant_address, ENotAuthorized);
+        reward_template.description = utf8(new_description);
+        
+        event::emit(RewardUpdated {
+            reward_id: object::id(reward_template),
+            merchant: merchant_cap.merchant_address,
+            updated_field: utf8(b"description"),
+        });
+    }
+
+    /// Update reward template points cost (merchant only)
+    public entry fun update_reward_cost(
+        merchant_cap: &MerchantCap,
+        reward_template: &mut RewardTemplate,
+        new_cost: u64,
+    ) {
+        assert!(reward_template.merchant == merchant_cap.merchant_address, ENotAuthorized);
+        assert!(new_cost > 0, EInvalidAmount);
+        reward_template.points_cost = new_cost;
+        
+        event::emit(RewardUpdated {
+            reward_id: object::id(reward_template),
+            merchant: merchant_cap.merchant_address,
+            updated_field: utf8(b"points_cost"),
+        });
+    }
+
+    /// Update reward template image URL (merchant only)
+    public entry fun update_reward_image(
+        merchant_cap: &MerchantCap,
+        reward_template: &mut RewardTemplate,
+        new_image_url: vector<u8>,
+    ) {
+        assert!(reward_template.merchant == merchant_cap.merchant_address, ENotAuthorized);
+        reward_template.image_url = utf8(new_image_url);
+        
+        event::emit(RewardUpdated {
+            reward_id: object::id(reward_template),
+            merchant: merchant_cap.merchant_address,
+            updated_field: utf8(b"image_url"),
+        });
+    }
+
+    /// Add supply to reward template (merchant only)
+    public entry fun add_reward_supply(
+        merchant_cap: &MerchantCap,
+        reward_template: &mut RewardTemplate,
+        additional_supply: u64,
+    ) {
+        assert!(reward_template.merchant == merchant_cap.merchant_address, ENotAuthorized);
+        assert!(additional_supply > 0, EInvalidAmount);
+        
+        reward_template.total_supply = reward_template.total_supply + additional_supply;
+        reward_template.remaining_supply = reward_template.remaining_supply + additional_supply;
+        
+        event::emit(RewardUpdated {
+            reward_id: object::id(reward_template),
+            merchant: merchant_cap.merchant_address,
+            updated_field: utf8(b"supply"),
+        });
+    }
+
+    /// Delete reward template (merchant only) - marks as inactive instead of destroying
+    public entry fun delete_reward_template(
+        merchant_cap: &MerchantCap,
+        reward_template: &mut RewardTemplate,
+    ) {
+        assert!(reward_template.merchant == merchant_cap.merchant_address, ENotAuthorized);
+        reward_template.is_active = false;
+        
+        event::emit(RewardDeleted {
+            reward_id: object::id(reward_template),
+            merchant: merchant_cap.merchant_address,
+        });
     }
 
     /// Transfer points between users
