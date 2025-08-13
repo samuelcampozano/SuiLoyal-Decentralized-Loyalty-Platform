@@ -524,60 +524,82 @@ export class LoyaltyService {
     return tx;
   }
 
-  // Update reward template transaction (for merchants to modify their rewards)
-  updateRewardTemplateTransaction(
+  // Update reward name transaction  
+  updateRewardNameTransaction(
     merchantCapId: string,
     rewardTemplateId: string,
-    name?: string,
-    description?: string,
-    pointsCost?: number,
-    imageUrl?: string
+    name: string
   ): Transaction {
     const tx = new Transaction();
     
-    if (name !== undefined) {
-      tx.moveCall({
-        target: `${PACKAGE_ID}::loyalty_system::update_reward_name`,
-        arguments: [
-          tx.object(merchantCapId),
-          tx.object(rewardTemplateId),
-          tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(name)))),
-        ],
-      });
-    }
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::update_reward_name`,
+      arguments: [
+        tx.object(merchantCapId),
+        tx.object(rewardTemplateId),
+        tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(name)))),
+      ],
+    });
+
+    return tx;
+  }
+
+  // Update reward description transaction
+  updateRewardDescriptionTransaction(
+    merchantCapId: string,
+    rewardTemplateId: string,
+    description: string
+  ): Transaction {
+    const tx = new Transaction();
     
-    if (description !== undefined) {
-      tx.moveCall({
-        target: `${PACKAGE_ID}::loyalty_system::update_reward_description`,
-        arguments: [
-          tx.object(merchantCapId),
-          tx.object(rewardTemplateId),
-          tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(description)))),
-        ],
-      });
-    }
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::update_reward_description`,
+      arguments: [
+        tx.object(merchantCapId),
+        tx.object(rewardTemplateId),
+        tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(description)))),
+      ],
+    });
+
+    return tx;
+  }
+
+  // Update reward cost transaction
+  updateRewardCostTransaction(
+    merchantCapId: string,
+    rewardTemplateId: string,
+    pointsCost: number
+  ): Transaction {
+    const tx = new Transaction();
     
-    if (pointsCost !== undefined) {
-      tx.moveCall({
-        target: `${PACKAGE_ID}::loyalty_system::update_reward_cost`,
-        arguments: [
-          tx.object(merchantCapId),
-          tx.object(rewardTemplateId),
-          tx.pure(bcs.u64().serialize(pointsCost)),
-        ],
-      });
-    }
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::update_reward_cost`,
+      arguments: [
+        tx.object(merchantCapId),
+        tx.object(rewardTemplateId),
+        tx.pure(bcs.u64().serialize(pointsCost)),
+      ],
+    });
+
+    return tx;
+  }
+
+  // Update reward image transaction
+  updateRewardImageTransaction(
+    merchantCapId: string,
+    rewardTemplateId: string,
+    imageUrl: string
+  ): Transaction {
+    const tx = new Transaction();
     
-    if (imageUrl !== undefined) {
-      tx.moveCall({
-        target: `${PACKAGE_ID}::loyalty_system::update_reward_image`,
-        arguments: [
-          tx.object(merchantCapId),
-          tx.object(rewardTemplateId),
-          tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(imageUrl)))),
-        ],
-      });
-    }
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::update_reward_image`,
+      arguments: [
+        tx.object(merchantCapId),
+        tx.object(rewardTemplateId),
+        tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(imageUrl)))),
+      ],
+    });
 
     return tx;
   }

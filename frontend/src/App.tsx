@@ -196,14 +196,14 @@ export default function App() {
         options: { showType: true, showContent: true },
       });
 
-      // Find MerchantCap
+      // Find MerchantCap (from new contract)
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('MerchantCap')
+        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
       );
 
-      // Find LoyaltyAccount
+      // Find LoyaltyAccount (from new contract)
       const loyaltyAccountObj = objects.data.find(obj => 
-        obj.data?.type?.includes('LoyaltyAccount')
+        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::LoyaltyAccount')
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -308,7 +308,7 @@ export default function App() {
         });
 
         const loyaltyAccountObj = objects.data.find(obj => 
-          obj.data?.type?.includes('LoyaltyAccount')
+          obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::LoyaltyAccount')
         );
 
         if (!loyaltyAccountObj?.data?.objectId) {
@@ -388,7 +388,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('MerchantCap')
+        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -480,7 +480,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('MerchantCap')
+        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -488,14 +488,42 @@ export default function App() {
         return;
       }
 
-      const tx = loyaltyService.updateRewardTemplateTransaction(
-        merchantCapObj.data.objectId,
-        rewardId,
-        updates.name,
-        updates.description,
-        updates.pointsCost,
-        updates.imageUrl
-      );
+      // Call individual update functions based on what needs to be updated
+      let tx;
+      let updateType = '';
+      
+      if (updates.name !== undefined) {
+        tx = loyaltyService.updateRewardNameTransaction(
+          merchantCapObj.data.objectId,
+          rewardId,
+          updates.name
+        );
+        updateType = 'name';
+      } else if (updates.description !== undefined) {
+        tx = loyaltyService.updateRewardDescriptionTransaction(
+          merchantCapObj.data.objectId,
+          rewardId,
+          updates.description
+        );
+        updateType = 'description';
+      } else if (updates.pointsCost !== undefined) {
+        tx = loyaltyService.updateRewardCostTransaction(
+          merchantCapObj.data.objectId,
+          rewardId,
+          updates.pointsCost
+        );
+        updateType = 'points cost';
+      } else if (updates.imageUrl !== undefined) {
+        tx = loyaltyService.updateRewardImageTransaction(
+          merchantCapObj.data.objectId,
+          rewardId,
+          updates.imageUrl
+        );
+        updateType = 'image';
+      } else {
+        showNotification('No valid updates provided', 'error');
+        return;
+      }
       
       signAndExecuteTransaction(
         {
@@ -503,7 +531,7 @@ export default function App() {
         },
         {
           onSuccess: async (_result: any) => {
-            showNotification('Reward updated successfully! 🎉', 'success');
+            showNotification(`Reward ${updateType} updated successfully! 🎉`, 'success');
             // Small delay for blockchain settlement
             await new Promise(resolve => setTimeout(resolve, 2000));
             // Reload blockchain data to reflect changes
@@ -544,7 +572,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('MerchantCap')
+        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -609,7 +637,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('MerchantCap')
+        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
       );
 
       if (!merchantCapObj?.data?.objectId) {
