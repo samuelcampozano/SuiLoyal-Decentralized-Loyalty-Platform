@@ -161,7 +161,7 @@ export class LoyaltyService {
     } catch (error) {
       console.error('Error fetching reward templates:', error);
       // Fallback: return mock data to show UI works
-      if (error.message?.includes('No transactions found')) {
+      if (error instanceof Error && error.message?.includes('No transactions found')) {
         return [];
       }
       return [];
@@ -209,7 +209,10 @@ export class LoyaltyService {
         const involvesUser = 
           txString.includes(userAddress) ||                    // Direct address match
           tx.transaction?.data?.sender === userAddress ||      // Transaction sender
-          tx.effects?.gasObject?.owner?.AddressOwner === userAddress; // Gas payer
+          (tx.effects?.gasObject?.owner && 
+           typeof tx.effects.gasObject.owner === 'object' && 
+           'AddressOwner' in tx.effects.gasObject.owner &&
+           tx.effects.gasObject.owner.AddressOwner === userAddress); // Gas payer
         
         if (involvesUser) {
           console.log('✅ Found user loyalty transaction:', tx.digest, {
@@ -338,14 +341,14 @@ export class LoyaltyService {
     }
   }
 
-  private getRewardNameFromCache(objectId: string): string {
+  private getRewardNameFromCache(_objectId: string): string {
     // Simple mapping for demo rewards - in production this would be a proper cache
-    const rewardNames: { [key: string]: string } = {
-      // These would be populated with actual object IDs after reward creation
-      'coffee': 'Free Coffee',
-      'pastry': 'Pastry Combo', 
-      'coupon': '10% Off Coupon'
-    };
+    // const rewardNames: { [key: string]: string } = {
+    //   // These would be populated with actual object IDs after reward creation
+    //   'coffee': 'Free Coffee',
+    //   'pastry': 'Pastry Combo', 
+    //   'coupon': '10% Off Coupon'
+    // };
     
     // For now, try to infer from recent rewards or return generic name
     return 'Redeemed Reward';
@@ -497,6 +500,120 @@ export class LoyaltyService {
     });
 
     return tx;
+  }
+
+  // Update reward template transaction (for merchants to modify their rewards)
+  updateRewardTemplateTransaction(
+    merchantCapId: string,
+    rewardTemplateId: string,
+    name?: string,
+    description?: string,
+    pointsCost?: number,
+    imageUrl?: string
+  ): Transaction {
+    const tx = new Transaction();
+    
+    if (name !== undefined) {
+      tx.moveCall({
+        target: `${PACKAGE_ID}::loyalty_system::update_reward_name`,
+        arguments: [
+          tx.object(merchantCapId),
+          tx.object(rewardTemplateId),
+          tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(name)))),
+        ],
+      });
+    }
+    
+    if (description !== undefined) {
+      tx.moveCall({
+        target: `${PACKAGE_ID}::loyalty_system::update_reward_description`,
+        arguments: [
+          tx.object(merchantCapId),
+          tx.object(rewardTemplateId),
+          tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(description)))),
+        ],
+      });
+    }
+    
+    if (pointsCost !== undefined) {
+      tx.moveCall({
+        target: `${PACKAGE_ID}::loyalty_system::update_reward_cost`,
+        arguments: [
+          tx.object(merchantCapId),
+          tx.object(rewardTemplateId),
+          tx.pure(bcs.u64().serialize(pointsCost)),
+        ],
+      });
+    }
+    
+    if (imageUrl !== undefined) {
+      tx.moveCall({
+        target: `${PACKAGE_ID}::loyalty_system::update_reward_image`,
+        arguments: [
+          tx.object(merchantCapId),
+          tx.object(rewardTemplateId),
+          tx.pure(bcs.vector(bcs.u8()).serialize(Array.from(new TextEncoder().encode(imageUrl)))),
+        ],
+      });
+    }
+
+    return tx;
+  }
+
+  // Delete reward template transaction
+  deleteRewardTemplateTransaction(
+    merchantCapId: string,
+    rewardTemplateId: string
+  ): Transaction {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::delete_reward_template`,
+      arguments: [
+        tx.object(merchantCapId),
+        tx.object(rewardTemplateId),
+      ],
+    });
+
+    return tx;
+  }
+
+  // Update reward supply transaction
+  updateRewardSupplyTransaction(
+    merchantCapId: string,
+    rewardTemplateId: string,
+    additionalSupply: number
+  ): Transaction {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::add_reward_supply`,
+      arguments: [
+        tx.object(merchantCapId),
+        tx.object(rewardTemplateId),
+        tx.pure(bcs.u64().serialize(additionalSupply)),
+      ],
+    });
+
+    return tx;
+  }
+
+  // Get merchant's reward templates
+  async getMerchantRewardTemplates(merchantAddress: string) {
+    try {
+      const allRewards = await this.getRewardTemplates();
+      
+      // Filter rewards for this specific merchant
+      const merchantRewards = allRewards.filter(reward => {
+        return reward.merchantId === merchantAddress;
+      });
+      
+      console.log('Merchant rewards filtered:', merchantRewards);
+      return merchantRewards;
+    } catch (error) {
+      console.error('Error fetching merchant reward templates:', error);
+      return [];
+    }
   }
 }
 
