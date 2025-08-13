@@ -106,18 +106,22 @@ export default function App() {
       const txHistory = await loyaltyService.getUserTransactionHistory(userAddress);
       const mappedTransactions = txHistory.map(tx => ({
         id: tx.id,
-        type: tx.type === 'other' ? 'earned' : tx.type,
+        type: tx.type as 'earned' | 'redeemed' | 'other', // Keep the original type from loyaltyService
         merchant: tx.type === 'earned' ? 'Points Earned' : tx.type === 'redeemed' ? 'Reward Redeemed' : 'Blockchain Activity',
         amount: tx.amount || 0, // Use real transaction amount
         date: tx.timestamp,
-        reward: tx.type === 'redeemed' ? 'Reward Item' : undefined
+        reward: tx.type === 'redeemed' ? (tx.rewardName || 'Reward Item') : undefined
       }));
+
+      console.log('🏠 App.tsx - Mapped transactions for UI:', mappedTransactions);
+      console.log('🏠 App.tsx - Total transactions:', mappedTransactions.length);
+      console.log('🏠 App.tsx - Redeemed transactions:', mappedTransactions.filter(t => t.type === 'redeemed'));
 
       // If no transactions, show a placeholder message about creating activity
       if (mappedTransactions.length === 0 && loyaltyAccount) {
         mappedTransactions.push({
           id: 'placeholder-1',
-          type: 'earned' as 'earned',
+          type: 'earned' as const,
           merchant: 'Demo Activity',
           amount: 0,
           date: new Date().toISOString(),
@@ -125,6 +129,8 @@ export default function App() {
         });
       }
 
+      console.log('🔄 Setting transactions state with:', mappedTransactions.length, 'transactions');
+      console.log('🔄 Redeemed in final set:', mappedTransactions.filter(t => t.type === 'redeemed').length);
       setTransactions(mappedTransactions);
       
     } catch (error) {
@@ -453,6 +459,196 @@ export default function App() {
     }
   };
 
+  const updateReward = async (rewardId: string, updates: Partial<Reward>) => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
+    if (!isMerchant) {
+      showNotification('Only merchants can update rewards', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Get user's MerchantCap
+      const objects = await loyaltyService.client.getOwnedObjects({
+        owner: currentAccount.address,
+        options: { showType: true, showContent: true },
+      });
+
+      const merchantCapObj = objects.data.find(obj => 
+        obj.data?.type?.includes('MerchantCap')
+      );
+
+      if (!merchantCapObj?.data?.objectId) {
+        showNotification('MerchantCap not found. Please register as merchant first.', 'error');
+        return;
+      }
+
+      const tx = loyaltyService.updateRewardTemplateTransaction(
+        merchantCapObj.data.objectId,
+        rewardId,
+        updates.name,
+        updates.description,
+        updates.pointsCost,
+        updates.imageUrl
+      );
+      
+      signAndExecuteTransaction(
+        {
+          transactionBlock: tx as any,
+        },
+        {
+          onSuccess: async (_result: any) => {
+            showNotification('Reward updated successfully! 🎉', 'success');
+            // Small delay for blockchain settlement
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Reload blockchain data to reflect changes
+            await loadBlockchainData();
+          },
+          onError: (error: any) => {
+            console.error('Update failed:', error);
+            showNotification('Failed to update reward: ' + error.message, 'error');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error updating reward:', error);
+      showNotification('Failed to update reward', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteReward = async (rewardId: string) => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
+    if (!isMerchant) {
+      showNotification('Only merchants can delete rewards', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Get user's MerchantCap
+      const objects = await loyaltyService.client.getOwnedObjects({
+        owner: currentAccount.address,
+        options: { showType: true, showContent: true },
+      });
+
+      const merchantCapObj = objects.data.find(obj => 
+        obj.data?.type?.includes('MerchantCap')
+      );
+
+      if (!merchantCapObj?.data?.objectId) {
+        showNotification('MerchantCap not found. Please register as merchant first.', 'error');
+        return;
+      }
+
+      const tx = loyaltyService.deleteRewardTemplateTransaction(
+        merchantCapObj.data.objectId,
+        rewardId
+      );
+      
+      signAndExecuteTransaction(
+        {
+          transactionBlock: tx as any,
+        },
+        {
+          onSuccess: async (_result: any) => {
+            showNotification('Reward deleted successfully! 🗑️', 'success');
+            // Small delay for blockchain settlement
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Reload blockchain data to reflect changes
+            await loadBlockchainData();
+          },
+          onError: (error: any) => {
+            console.error('Deletion failed:', error);
+            showNotification('Failed to delete reward: ' + error.message, 'error');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error deleting reward:', error);
+      showNotification('Failed to delete reward', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateRewardSupply = async (rewardId: string, additionalSupply: number) => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
+    if (!isMerchant) {
+      showNotification('Only merchants can update reward supply', 'error');
+      return;
+    }
+
+    if (additionalSupply <= 0) {
+      showNotification('Additional supply must be greater than 0', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Get user's MerchantCap
+      const objects = await loyaltyService.client.getOwnedObjects({
+        owner: currentAccount.address,
+        options: { showType: true, showContent: true },
+      });
+
+      const merchantCapObj = objects.data.find(obj => 
+        obj.data?.type?.includes('MerchantCap')
+      );
+
+      if (!merchantCapObj?.data?.objectId) {
+        showNotification('MerchantCap not found. Please register as merchant first.', 'error');
+        return;
+      }
+
+      const tx = loyaltyService.updateRewardSupplyTransaction(
+        merchantCapObj.data.objectId,
+        rewardId,
+        additionalSupply
+      );
+      
+      signAndExecuteTransaction(
+        {
+          transactionBlock: tx as any,
+        },
+        {
+          onSuccess: async (_result: any) => {
+            showNotification(`Added ${additionalSupply} items to reward supply! 📦`, 'success');
+            // Small delay for blockchain settlement
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Reload blockchain data to reflect changes
+            await loadBlockchainData();
+          },
+          onError: (error: any) => {
+            console.error('Supply update failed:', error);
+            showNotification('Failed to update supply: ' + error.message, 'error');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error updating reward supply:', error);
+      showNotification('Failed to update reward supply', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
 
@@ -500,9 +696,13 @@ export default function App() {
             loading={loading}
             isMerchant={isMerchant}
             hasCreatedRewards={hasCreatedRewards}
+            userAddress={currentAccount?.address || ''}
             issuePoints={issuePoints}
             registerMerchant={registerMerchant}
             createDemoRewards={createDemoRewards}
+            onUpdateReward={updateReward}
+            onDeleteReward={deleteReward}
+            onUpdateSupply={updateRewardSupply}
           />
         )}
         {currentTab === 'profile' && (
