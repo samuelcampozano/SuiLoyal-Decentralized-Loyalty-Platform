@@ -537,6 +537,9 @@ export default function App() {
         return;
       }
       
+      // Show wallet approval message
+      showNotification(`Please approve transaction in wallet to update ${updateType}...`, 'info');
+      
       signAndExecuteTransaction(
         {
           transactionBlock: tx as any,
@@ -544,16 +547,16 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification(`Reward ${updateType} updated successfully! 🎉`, 'success');
-            // Update local state immediately for better UX
+            // Update local state after successful transaction
             setRewards(prevRewards => 
               prevRewards.map(reward => 
                 reward.id === rewardId ? { ...reward, ...updates } : reward
               )
             );
-            // Small delay for blockchain settlement then reload to confirm
+            // Reload blockchain data after a short delay to confirm
             setTimeout(async () => {
               await loadBlockchainData();
-            }, 1000);
+            }, 2000);
           },
           onError: (error: any) => {
             console.error('Update failed:', error);
@@ -603,6 +606,9 @@ export default function App() {
         rewardId
       );
       
+      // Show wallet approval message
+      showNotification('Please approve transaction in wallet to delete reward...', 'info');
+      
       signAndExecuteTransaction(
         {
           transactionBlock: tx as any,
@@ -610,12 +616,12 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification('Reward deleted successfully! 🗑️', 'success');
-            // Update local state immediately for better UX
+            // Update local state after successful transaction
             setRewards(prevRewards => prevRewards.filter(reward => reward.id !== rewardId));
-            // Small delay for blockchain settlement then reload to confirm
+            // Reload blockchain data after a short delay to confirm
             setTimeout(async () => {
               await loadBlockchainData();
-            }, 1000);
+            }, 2000);
           },
           onError: (error: any) => {
             console.error('Deletion failed:', error);
@@ -671,6 +677,9 @@ export default function App() {
         additionalSupply
       );
       
+      // Show wallet approval message
+      showNotification(`Please approve transaction in wallet to add ${additionalSupply} items...`, 'info');
+      
       signAndExecuteTransaction(
         {
           transactionBlock: tx as any,
@@ -678,16 +687,16 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification(`Added ${additionalSupply} items to reward supply! 📦`, 'success');
-            // Update local state immediately for better UX
+            // Update local state after successful transaction
             setRewards(prevRewards => 
               prevRewards.map(reward => 
                 reward.id === rewardId ? { ...reward, remaining: reward.remaining + additionalSupply } : reward
               )
             );
-            // Small delay for blockchain settlement then reload to confirm
+            // Reload blockchain data after a short delay to confirm
             setTimeout(async () => {
               await loadBlockchainData();
-            }, 1000);
+            }, 2000);
           },
           onError: (error: any) => {
             console.error('Supply update failed:', error);

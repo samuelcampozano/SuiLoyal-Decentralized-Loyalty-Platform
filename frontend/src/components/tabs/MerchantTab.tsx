@@ -62,7 +62,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
     // Refresh local merchant rewards after update
     setTimeout(() => {
       loadMerchantRewards();
-    }, 1500);
+    }, 3000);
   };
 
   const handleDeleteReward = async (rewardId: string) => {
@@ -70,7 +70,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
     // Refresh local merchant rewards after deletion
     setTimeout(() => {
       loadMerchantRewards();
-    }, 1500);
+    }, 3000);
   };
 
   const handleUpdateSupply = async (rewardId: string, additionalSupply: number) => {
@@ -78,7 +78,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
     // Refresh local merchant rewards after supply update
     setTimeout(() => {
       loadMerchantRewards();
-    }, 1500);
+    }, 3000);
   };
 
   return (
