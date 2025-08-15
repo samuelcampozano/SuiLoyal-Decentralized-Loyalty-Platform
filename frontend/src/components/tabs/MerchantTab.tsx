@@ -56,6 +56,31 @@ export const MerchantTab: FC<MerchantTabProps> = ({
     }
   };
 
+  // Enhanced handlers that refresh local data
+  const handleUpdateReward = async (rewardId: string, updates: Partial<Reward>) => {
+    await onUpdateReward(rewardId, updates);
+    // Refresh local merchant rewards after update
+    setTimeout(() => {
+      loadMerchantRewards();
+    }, 1500);
+  };
+
+  const handleDeleteReward = async (rewardId: string) => {
+    await onDeleteReward(rewardId);
+    // Refresh local merchant rewards after deletion
+    setTimeout(() => {
+      loadMerchantRewards();
+    }, 1500);
+  };
+
+  const handleUpdateSupply = async (rewardId: string, additionalSupply: number) => {
+    await onUpdateSupply(rewardId, additionalSupply);
+    // Refresh local merchant rewards after supply update
+    setTimeout(() => {
+      loadMerchantRewards();
+    }, 1500);
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl p-6 shadow-lg">
@@ -227,9 +252,9 @@ export const MerchantTab: FC<MerchantTabProps> = ({
                     rewards={merchantRewards}
                     isConnected={isConnected}
                     loading={loading}
-                    onUpdateReward={onUpdateReward}
-                    onDeleteReward={onDeleteReward}
-                    onUpdateSupply={onUpdateSupply}
+                    onUpdateReward={handleUpdateReward}
+                    onDeleteReward={handleDeleteReward}
+                    onUpdateSupply={handleUpdateSupply}
                   />
                 )}
               </div>

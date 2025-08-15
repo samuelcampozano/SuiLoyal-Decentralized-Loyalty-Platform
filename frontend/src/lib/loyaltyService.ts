@@ -351,7 +351,7 @@ export class LoyaltyService {
     // };
     
     // For now, try to infer from recent rewards or return generic name
-    return 'Redeemed Reward';
+    return 'Reward Item';
   }
 
   private determineTransactionType(tx: any): 'earned' | 'redeemed' | 'other' {
