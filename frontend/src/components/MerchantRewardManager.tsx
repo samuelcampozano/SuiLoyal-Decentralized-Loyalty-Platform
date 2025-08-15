@@ -224,7 +224,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                 {renderEditableField(reward.id, 'imageUrl', reward.imageUrl, 'Image/Emoji')}
               </div>
               <div>
-                {renderEditableField(reward.id, 'supply', reward.remaining, 'Remaining Supply', 'number')}
+                {renderEditableField(reward.id, 'supply', reward.remaining, 'Current Supply', 'number')}
               </div>
             </div>
 
@@ -232,7 +232,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <label className="text-sm font-medium text-gray-700 block mb-1">
-                    Add Supply
+                    Increase Supply
                   </label>
                   <input
                     type="number"
@@ -242,7 +242,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                       ...prev,
                       [reward.id]: Number(e.target.value)
                     }))}
-                    placeholder="Enter amount to add"
+                    placeholder="Amount to add to current supply"
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   />
                 </div>
@@ -251,7 +251,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                   disabled={!isConnected || loading || !supplyToAdd[reward.id] || supplyToAdd[reward.id] <= 0}
                   className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 transition-colors"
                 >
-                  Add Supply
+                  + Add
                 </button>
               </div>
             </div>
