@@ -16,6 +16,7 @@ interface MerchantTabProps {
   onDeleteReward: (rewardId: string, refreshCallback?: () => Promise<void>) => void;
   onUpdateSupply: (rewardId: string, additionalSupply: number, refreshCallback?: () => Promise<void>) => void;
   onCreateReward: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number, refreshCallback?: () => Promise<void>) => void;
+  showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 export const MerchantTab: FC<MerchantTabProps> = ({
@@ -32,6 +33,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   onDeleteReward,
   onUpdateSupply,
   onCreateReward,
+  showNotification,
 }) => {
   const [merchantRewards, setMerchantRewards] = useState<Reward[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'rewards'>('overview');
@@ -250,6 +252,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
                     onDeleteReward={handleDeleteReward}
                     onUpdateSupply={handleUpdateSupply}
                     onCreateReward={handleCreateReward}
+                    showNotification={showNotification}
                   />
                 )}
               </div>

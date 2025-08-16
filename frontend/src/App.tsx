@@ -806,6 +806,7 @@ export default function App() {
             onDeleteReward={deleteReward}
             onUpdateSupply={updateRewardSupply}
             onCreateReward={createSingleReward}
+            showNotification={showNotification}
           />
         )}
         {currentTab === 'profile' && (
