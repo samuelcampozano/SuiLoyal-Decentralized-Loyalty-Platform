@@ -76,7 +76,8 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
       onUpdateReward(editingReward.id, updates);
     }
     
-    setEditingReward(null);
+    // Don't close edit mode here - let it stay open until user decides
+    // setEditingReward(null);
   };
 
   const handleCancelEdit = () => {
@@ -162,13 +163,13 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
             className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
             disabled={loading || (type === 'number' && (editingReward.value === '' || Number(editingReward.value) <= 0))}
           >
-            ✓
+            Save
           </button>
           <button
             onClick={handleCancelEdit}
             className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
           >
-            ✕
+            Cancel
           </button>
         </div>
       );
@@ -332,19 +333,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                 {renderEditableField(reward.id, 'imageUrl', reward.imageUrl, 'Image/Emoji')}
               </div>
               <div>
-                <div className="flex items-center justify-between group">
-                  <div>
-                    <span className="text-xs text-gray-500 block">Supply (edit to add/remove)</span>
-                    <span className="font-medium">{reward.remaining} available</span>
-                  </div>
-                  <button
-                    onClick={() => handleEdit(reward.id, 'supply', reward.remaining)}
-                    className="opacity-0 group-hover:opacity-100 px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-all"
-                    disabled={!isConnected || loading}
-                  >
-                    Edit
-                  </button>
-                </div>
+                {renderEditableField(reward.id, 'supply', reward.remaining, 'Supply (edit to add/remove)', 'number')}
               </div>
             </div>
 

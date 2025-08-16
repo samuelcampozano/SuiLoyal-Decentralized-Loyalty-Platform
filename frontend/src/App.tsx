@@ -539,14 +539,14 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification(`Reward ${updateType} updated successfully! 🎉`, 'success');
-            // Reload immediately after user approves transaction
-            await loadBlockchainData();
+            // Reload blockchain data to reflect changes - wait longer for settlement
+            setTimeout(async () => {
+              await loadBlockchainData();
+            }, 5000);
           },
-          onError: async (error: any) => {
+          onError: (error: any) => {
             console.error('Update failed:', error);
-            showNotification('Transaction was cancelled or failed', 'error');
-            // Reload immediately after user rejects/cancels transaction
-            await loadBlockchainData();
+            showNotification('Failed to update reward: ' + error.message, 'error');
           },
         }
       );
@@ -602,14 +602,14 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification('Reward deleted successfully! 🗑️', 'success');
-            // Reload immediately after user approves transaction
-            await loadBlockchainData();
+            // Reload blockchain data to reflect changes - wait longer for settlement
+            setTimeout(async () => {
+              await loadBlockchainData();
+            }, 5000);
           },
-          onError: async (error: any) => {
+          onError: (error: any) => {
             console.error('Deletion failed:', error);
-            showNotification('Transaction was cancelled or failed', 'error');
-            // Reload immediately after user rejects/cancels transaction
-            await loadBlockchainData();
+            showNotification('Failed to delete reward: ' + error.message, 'error');
           },
         }
       );
@@ -669,14 +669,14 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification(`Reward "${name}" created successfully! 🎉`, 'success');
-            // Reload immediately after user approves transaction
-            await loadBlockchainData();
+            // Reload blockchain data to reflect changes - wait longer for settlement
+            setTimeout(async () => {
+              await loadBlockchainData();
+            }, 5000);
           },
-          onError: async (error: any) => {
+          onError: (error: any) => {
             console.error('Creation failed:', error);
-            showNotification('Transaction was cancelled or failed', 'error');
-            // Reload immediately after user rejects/cancels transaction
-            await loadBlockchainData();
+            showNotification('Failed to create reward: ' + error.message, 'error');
           },
         }
       );
@@ -738,14 +738,14 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification(`Added ${additionalSupply} items to reward supply! 📦`, 'success');
-            // Reload immediately after user approves transaction
-            await loadBlockchainData();
+            // Reload blockchain data to reflect changes - wait longer for settlement
+            setTimeout(async () => {
+              await loadBlockchainData();
+            }, 5000);
           },
-          onError: async (error: any) => {
+          onError: (error: any) => {
             console.error('Supply update failed:', error);
-            showNotification('Transaction was cancelled or failed', 'error');
-            // Reload immediately after user rejects/cancels transaction
-            await loadBlockchainData();
+            showNotification('Failed to update supply: ' + error.message, 'error');
           },
         }
       );
