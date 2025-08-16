@@ -61,34 +61,34 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   // Enhanced handlers that refresh local data
   const handleUpdateReward = async (rewardId: string, updates: Partial<Reward>) => {
     await onUpdateReward(rewardId, updates);
-    // Refresh local merchant rewards after update - wait for blockchain settlement
+    // Refresh immediately after transaction completes (success or failure)
     setTimeout(() => {
       loadMerchantRewards();
-    }, 6000);
+    }, 1000);
   };
 
   const handleDeleteReward = async (rewardId: string) => {
     await onDeleteReward(rewardId);
-    // Refresh local merchant rewards after deletion - wait for blockchain settlement
+    // Refresh immediately after transaction completes (success or failure)
     setTimeout(() => {
       loadMerchantRewards();
-    }, 6000);
+    }, 1000);
   };
 
   const handleUpdateSupply = async (rewardId: string, additionalSupply: number) => {
     await onUpdateSupply(rewardId, additionalSupply);
-    // Refresh local merchant rewards after supply update - wait for blockchain settlement
+    // Refresh immediately after transaction completes (success or failure)
     setTimeout(() => {
       loadMerchantRewards();
-    }, 6000);
+    }, 1000);
   };
 
   const handleCreateReward = async (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => {
     await onCreateReward(name, description, pointsCost, imageUrl, supply);
-    // Refresh local merchant rewards after creation - wait for blockchain settlement
+    // Refresh immediately after transaction completes (success or failure)
     setTimeout(() => {
       loadMerchantRewards();
-    }, 6000);
+    }, 1000);
   };
 
   return (
