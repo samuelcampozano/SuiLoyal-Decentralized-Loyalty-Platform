@@ -58,9 +58,11 @@ export const ProfileTab: FC<ProfileTabProps> = ({
                       {tx.type === 'earned' ? '⬆️' : '⬇️'}
                     </div>
                     <div>
-                      <div className="font-semibold">{tx.merchant}</div>
+                      <div className="font-semibold">
+                        {tx.type === 'earned' ? 'Points Earned' : 'Reward Redeemed'}
+                      </div>
                       <div className="text-sm text-gray-600">
-                        {tx.type === 'earned' ? 'Points Earned' : `Redeemed: ${tx.reward}`}
+                        {tx.type === 'earned' ? 'From Demo Merchant' : `${tx.reward} - Demo Merchant`}
                       </div>
                     </div>
                   </div>

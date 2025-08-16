@@ -15,6 +15,7 @@ interface MerchantTabProps {
   onUpdateReward: (rewardId: string, updates: Partial<Reward>) => void;
   onDeleteReward: (rewardId: string) => void;
   onUpdateSupply: (rewardId: string, additionalSupply: number) => void;
+  onCreateReward: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => void;
 }
 
 export const MerchantTab: FC<MerchantTabProps> = ({
@@ -30,6 +31,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   onUpdateReward,
   onDeleteReward,
   onUpdateSupply,
+  onCreateReward,
 }) => {
   const [merchantRewards, setMerchantRewards] = useState<Reward[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'rewards'>('overview');
@@ -76,6 +78,14 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   const handleUpdateSupply = async (rewardId: string, additionalSupply: number) => {
     await onUpdateSupply(rewardId, additionalSupply);
     // Refresh local merchant rewards after supply update
+    setTimeout(() => {
+      loadMerchantRewards();
+    }, 3000);
+  };
+
+  const handleCreateReward = async (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => {
+    await onCreateReward(name, description, pointsCost, imageUrl, supply);
+    // Refresh local merchant rewards after creation
     setTimeout(() => {
       loadMerchantRewards();
     }, 3000);
@@ -255,6 +265,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
                     onUpdateReward={handleUpdateReward}
                     onDeleteReward={handleDeleteReward}
                     onUpdateSupply={handleUpdateSupply}
+                    onCreateReward={handleCreateReward}
                   />
                 )}
               </div>

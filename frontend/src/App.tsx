@@ -102,28 +102,20 @@ export default function App() {
       const merchantStatus = await loyaltyService.hasMerchantCap(userAddress);
       setIsMerchant(merchantStatus);
       
-      // Load transaction history
+      // Load transaction history - filter only relevant transactions
       const txHistory = await loyaltyService.getUserTransactionHistory(userAddress);
-      const mappedTransactions = txHistory.map(tx => {
-        let merchantLabel = 'Demo Merchant';
-        
-        if (tx.type === 'earned') {
-          merchantLabel = 'Demo Merchant';
-        } else if (tx.type === 'redeemed') {
-          merchantLabel = 'Demo Merchant';
-        } else {
-          merchantLabel = 'System';
-        }
-        
-        return {
-          id: tx.id,
-          type: tx.type as 'earned' | 'redeemed' | 'other',
-          merchant: merchantLabel,
-          amount: tx.amount || 0,
-          date: tx.timestamp,
-          reward: tx.type === 'redeemed' ? (tx.rewardName || 'Reward Item') : undefined
-        };
-      });
+      const mappedTransactions = txHistory
+        .filter(tx => tx.type === 'earned' || tx.type === 'redeemed') // Only show meaningful transactions
+        .map(tx => {
+          return {
+            id: tx.id,
+            type: tx.type as 'earned' | 'redeemed',
+            merchant: 'Demo Merchant',
+            amount: tx.amount || 0,
+            date: tx.timestamp,
+            reward: tx.type === 'redeemed' ? (tx.rewardName || 'Reward Item') : undefined
+          };
+        });
 
       console.log('🏠 App.tsx - Mapped transactions for UI:', mappedTransactions);
       console.log('🏠 App.tsx - Total transactions:', mappedTransactions.length);
@@ -547,16 +539,10 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification(`Reward ${updateType} updated successfully! 🎉`, 'success');
-            // Update local state after successful transaction
-            setRewards(prevRewards => 
-              prevRewards.map(reward => 
-                reward.id === rewardId ? { ...reward, ...updates } : reward
-              )
-            );
-            // Reload blockchain data after a short delay to confirm
+            // Reload blockchain data to reflect changes
             setTimeout(async () => {
               await loadBlockchainData();
-            }, 2000);
+            }, 1500);
           },
           onError: (error: any) => {
             console.error('Update failed:', error);
@@ -616,12 +602,10 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification('Reward deleted successfully! 🗑️', 'success');
-            // Update local state after successful transaction
-            setRewards(prevRewards => prevRewards.filter(reward => reward.id !== rewardId));
-            // Reload blockchain data after a short delay to confirm
+            // Reload blockchain data to reflect changes
             setTimeout(async () => {
               await loadBlockchainData();
-            }, 2000);
+            }, 1500);
           },
           onError: (error: any) => {
             console.error('Deletion failed:', error);
@@ -632,6 +616,73 @@ export default function App() {
     } catch (error) {
       console.error('Error deleting reward:', error);
       showNotification('Failed to delete reward', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createSingleReward = async (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => {
+    if (!currentAccount?.address) {
+      showNotification('Please connect your wallet first', 'error');
+      return;
+    }
+
+    if (!isMerchant) {
+      showNotification('Only merchants can create rewards', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Get user's MerchantCap
+      const objects = await loyaltyService.client.getOwnedObjects({
+        owner: currentAccount.address,
+        options: { showType: true, showContent: true },
+      });
+
+      const merchantCapObj = objects.data.find(obj => 
+        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
+      );
+
+      if (!merchantCapObj?.data?.objectId) {
+        showNotification('MerchantCap not found. Please register as merchant first.', 'error');
+        return;
+      }
+
+      const tx = loyaltyService.createRewardTemplateTransaction(
+        merchantCapObj.data.objectId,
+        name,
+        description,
+        pointsCost,
+        imageUrl,
+        supply
+      );
+      
+      // Show wallet approval message
+      showNotification('Please approve transaction in wallet to create reward...', 'info');
+      
+      signAndExecuteTransaction(
+        {
+          transactionBlock: tx as any,
+        },
+        {
+          onSuccess: async (_result: any) => {
+            showNotification(`Reward "${name}" created successfully! 🎉`, 'success');
+            // Reload blockchain data to reflect changes
+            setTimeout(async () => {
+              await loadBlockchainData();
+            }, 1500);
+          },
+          onError: (error: any) => {
+            console.error('Creation failed:', error);
+            showNotification('Failed to create reward: ' + error.message, 'error');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error creating reward:', error);
+      showNotification('Failed to create reward', 'error');
     } finally {
       setLoading(false);
     }
@@ -687,16 +738,10 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             showNotification(`Added ${additionalSupply} items to reward supply! 📦`, 'success');
-            // Update local state after successful transaction
-            setRewards(prevRewards => 
-              prevRewards.map(reward => 
-                reward.id === rewardId ? { ...reward, remaining: reward.remaining + additionalSupply } : reward
-              )
-            );
-            // Reload blockchain data after a short delay to confirm
+            // Reload blockchain data to reflect changes
             setTimeout(async () => {
               await loadBlockchainData();
-            }, 2000);
+            }, 1500);
           },
           onError: (error: any) => {
             console.error('Supply update failed:', error);
@@ -766,6 +811,7 @@ export default function App() {
             onUpdateReward={updateReward}
             onDeleteReward={deleteReward}
             onUpdateSupply={updateRewardSupply}
+            onCreateReward={createSingleReward}
           />
         )}
         {currentTab === 'profile' && (

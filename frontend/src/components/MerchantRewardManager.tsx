@@ -8,6 +8,7 @@ interface MerchantRewardManagerProps {
   onUpdateReward: (rewardId: string, updates: Partial<Reward>) => void;
   onDeleteReward: (rewardId: string) => void;
   onUpdateSupply: (rewardId: string, additionalSupply: number) => void;
+  onCreateReward: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => void;
 }
 
 interface EditingReward {
@@ -23,10 +24,18 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
   onUpdateReward,
   onDeleteReward,
   onUpdateSupply,
+  onCreateReward,
 }) => {
   const [editingReward, setEditingReward] = useState<EditingReward | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [supplyToAdd, setSupplyToAdd] = useState<{ [key: string]: number }>({});
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickCreateData, setQuickCreateData] = useState({
+    name: '',
+    description: '',
+    pointsCost: 100,
+    imageUrl: '🎁',
+    supply: 10
+  });
 
   const handleEdit = (rewardId: string, field: EditingReward['field'], currentValue: string | number) => {
     setEditingReward({ id: rewardId, field, value: currentValue });
@@ -74,12 +83,26 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
     setEditingReward(null);
   };
 
-  const handleAddSupply = (rewardId: string) => {
-    const additionalSupply = supplyToAdd[rewardId] || 0;
-    if (additionalSupply > 0) {
-      onUpdateSupply(rewardId, additionalSupply);
-      setSupplyToAdd(prev => ({ ...prev, [rewardId]: 0 }));
+
+  const handleQuickCreate = () => {
+    if (!quickCreateData.name.trim() || !quickCreateData.description.trim()) {
+      return;
     }
+    onCreateReward(
+      quickCreateData.name,
+      quickCreateData.description,
+      quickCreateData.pointsCost,
+      quickCreateData.imageUrl,
+      quickCreateData.supply
+    );
+    setQuickCreateData({
+      name: '',
+      description: '',
+      pointsCost: 100,
+      imageUrl: '🎁',
+      supply: 10
+    });
+    setShowQuickCreate(false);
   };
 
   const handleDeleteConfirm = (rewardId: string) => {
@@ -183,11 +206,95 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
   return (
     <div className="space-y-4">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-bold text-lg mb-2 text-blue-800">🎯 Reward Management</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-lg text-blue-800">🎯 Reward Management</h3>
+          <button
+            onClick={() => setShowQuickCreate(!showQuickCreate)}
+            disabled={!isConnected || loading}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 transition-colors"
+          >
+            + Quick Create
+          </button>
+        </div>
         <p className="text-sm text-blue-700">
           Manage your reward templates: edit descriptions, adjust point costs, update supply, or remove rewards.
         </p>
       </div>
+
+      {showQuickCreate && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 className="font-bold text-lg mb-4 text-green-800">⚡ Quick Create Reward</h4>
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Reward Name</label>
+              <input
+                type="text"
+                value={quickCreateData.name}
+                onChange={(e) => setQuickCreateData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Free Coffee"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Description</label>
+              <input
+                type="text"
+                value={quickCreateData.description}
+                onChange={(e) => setQuickCreateData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="e.g., Redeem for any coffee size"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Points Cost</label>
+              <input
+                type="number"
+                min="1"
+                value={quickCreateData.pointsCost}
+                onChange={(e) => setQuickCreateData(prev => ({ ...prev, pointsCost: Number(e.target.value) }))}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Emoji/Icon</label>
+              <input
+                type="text"
+                value={quickCreateData.imageUrl}
+                onChange={(e) => setQuickCreateData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                placeholder="🎁"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Initial Supply</label>
+              <input
+                type="number"
+                min="1"
+                value={quickCreateData.supply}
+                onChange={(e) => setQuickCreateData(prev => ({ ...prev, supply: Number(e.target.value) }))}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleQuickCreate}
+              disabled={!isConnected || loading || !quickCreateData.name.trim() || !quickCreateData.description.trim()}
+              className="px-6 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 transition-colors"
+            >
+              Create Reward
+            </button>
+            <button
+              onClick={() => setShowQuickCreate(false)}
+              className="px-6 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {rewards.map((reward) => (
@@ -224,37 +331,27 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                 {renderEditableField(reward.id, 'imageUrl', reward.imageUrl, 'Image/Emoji')}
               </div>
               <div>
-                {renderEditableField(reward.id, 'supply', reward.remaining, 'Current Supply', 'number')}
+                <div className="flex items-center justify-between group">
+                  <div>
+                    <span className="text-xs text-gray-500 block">Current Supply</span>
+                    <span className="font-medium">{reward.remaining} available</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newSupply = prompt('Add how many items to supply?', '10');
+                      if (newSupply && Number(newSupply) > 0) {
+                        onUpdateSupply(reward.id, Number(newSupply));
+                      }
+                    }}
+                    className="opacity-0 group-hover:opacity-100 px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-all"
+                    disabled={!isConnected || loading}
+                  >
+                    + Add
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="border-t pt-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">
-                    Increase Supply
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={supplyToAdd[reward.id] || ''}
-                    onChange={(e) => setSupplyToAdd(prev => ({
-                      ...prev,
-                      [reward.id]: Number(e.target.value)
-                    }))}
-                    placeholder="Amount to add to current supply"
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                  />
-                </div>
-                <button
-                  onClick={() => handleAddSupply(reward.id)}
-                  disabled={!isConnected || loading || !supplyToAdd[reward.id] || supplyToAdd[reward.id] <= 0}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 transition-colors"
-                >
-                  + Add
-                </button>
-              </div>
-            </div>
 
             {showDeleteConfirm === reward.id && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
