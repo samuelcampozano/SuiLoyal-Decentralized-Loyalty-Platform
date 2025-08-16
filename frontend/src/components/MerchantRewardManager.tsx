@@ -28,6 +28,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
 }) => {
   const [editingReward, setEditingReward] = useState<EditingReward | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [supplyToAdd, setSupplyToAdd] = useState<{ [key: string]: number }>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [quickCreateData, setQuickCreateData] = useState({
     name: '',
@@ -83,6 +84,14 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
     setEditingReward(null);
   };
 
+
+  const handleAddSupply = (rewardId: string) => {
+    const additionalSupply = supplyToAdd[rewardId] || 0;
+    if (additionalSupply > 0) {
+      onUpdateSupply(rewardId, additionalSupply);
+      setSupplyToAdd(prev => ({ ...prev, [rewardId]: 0 }));
+    }
+  };
 
   const handleQuickCreate = () => {
     if (!quickCreateData.name.trim() || !quickCreateData.description.trim()) {
@@ -331,27 +340,37 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                 {renderEditableField(reward.id, 'imageUrl', reward.imageUrl, 'Image/Emoji')}
               </div>
               <div>
-                <div className="flex items-center justify-between group">
-                  <div>
-                    <span className="text-xs text-gray-500 block">Current Supply</span>
-                    <span className="font-medium">{reward.remaining} available</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const newSupply = prompt('Add how many items to supply?', '10');
-                      if (newSupply && Number(newSupply) > 0) {
-                        onUpdateSupply(reward.id, Number(newSupply));
-                      }
-                    }}
-                    className="opacity-0 group-hover:opacity-100 px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-all"
-                    disabled={!isConnected || loading}
-                  >
-                    + Add
-                  </button>
-                </div>
+                {renderEditableField(reward.id, 'supply', reward.remaining, 'Current Supply', 'number')}
               </div>
             </div>
 
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700 block mb-1">
+                    Add to Supply
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={supplyToAdd[reward.id] || ''}
+                    onChange={(e) => setSupplyToAdd(prev => ({
+                      ...prev,
+                      [reward.id]: Number(e.target.value)
+                    }))}
+                    placeholder="Amount to add to current supply"
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  />
+                </div>
+                <button
+                  onClick={() => handleAddSupply(reward.id)}
+                  disabled={!isConnected || loading || !supplyToAdd[reward.id] || supplyToAdd[reward.id] <= 0}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 transition-colors"
+                >
+                  + Add Supply
+                </button>
+              </div>
+            </div>
 
             {showDeleteConfirm === reward.id && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
