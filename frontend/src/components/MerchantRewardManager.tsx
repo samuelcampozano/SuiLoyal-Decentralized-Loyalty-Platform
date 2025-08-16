@@ -125,8 +125,8 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
             onChange={(e) => {
               if (type === 'number') {
                 const value = e.target.value;
-                // Allow empty string or valid positive numbers
-                if (value === '' || (/^\d+$/.test(value) && Number(value) >= 0)) {
+                // Allow empty string or valid non-negative numbers - more flexible validation
+                if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
                   setEditingReward({
                     ...editingReward,
                     value: value === '' ? '' : Number(value)
@@ -142,11 +142,16 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
             className="flex-1 px-2 py-1 border rounded text-sm"
             autoFocus
             placeholder={type === 'number' ? 'Enter points' : ''}
-            min={type === 'number' ? '1' : undefined}
+            min={type === 'number' ? '0' : undefined}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                if (type === 'number' && (editingReward.value === '' || Number(editingReward.value) <= 0)) {
-                  return; // Don't save invalid numbers
+                // For supply field, allow any non-negative number including 0
+                // For points cost, require at least 1
+                if (type === 'number') {
+                  const minValue = field === 'supply' ? 0 : 1;
+                  if (editingReward.value === '' || Number(editingReward.value) < minValue) {
+                    return; // Don't save invalid numbers
+                  }
                 }
                 handleSaveEdit();
               }
@@ -156,7 +161,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
           <button
             onClick={handleSaveEdit}
             className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
-            disabled={loading || (type === 'number' && (editingReward.value === '' || Number(editingReward.value) <= 0))}
+            disabled={loading || (type === 'number' && (editingReward.value === '' || Number(editingReward.value) < (field === 'supply' ? 0 : 1)))}
           >
             Save
           </button>
@@ -250,7 +255,13 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                 type="number"
                 min="1"
                 value={quickCreateData.pointsCost}
-                onChange={(e) => setQuickCreateData(prev => ({ ...prev, pointsCost: Number(e.target.value) }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string or valid positive numbers
+                  if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
+                    setQuickCreateData(prev => ({ ...prev, pointsCost: value === '' ? 0 : Number(value) }));
+                  }
+                }}
                 className="w-full px-3 py-2 border rounded-lg text-sm"
               />
             </div>
@@ -268,9 +279,15 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
               <label className="text-sm font-medium text-gray-700 block mb-1">Initial Supply</label>
               <input
                 type="number"
-                min="1"
+                min="0"
                 value={quickCreateData.supply}
-                onChange={(e) => setQuickCreateData(prev => ({ ...prev, supply: Number(e.target.value) }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string or valid non-negative numbers
+                  if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
+                    setQuickCreateData(prev => ({ ...prev, supply: value === '' ? 0 : Number(value) }));
+                  }
+                }}
                 className="w-full px-3 py-2 border rounded-lg text-sm"
               />
             </div>
@@ -328,7 +345,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                 {renderEditableField(reward.id, 'imageUrl', reward.imageUrl, 'Image/Emoji')}
               </div>
               <div>
-                {renderEditableField(reward.id, 'supply', reward.remaining, 'Supply (edit to add/remove)', 'number')}
+                {renderEditableField(reward.id, 'supply', reward.remaining, 'Current Supply (set any amount)', 'number')}
               </div>
             </div>
 
