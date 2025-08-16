@@ -12,10 +12,10 @@ interface MerchantTabProps {
   issuePoints: (amount: number) => void;
   registerMerchant: (name: string, description: string) => void;
   createDemoRewards: () => void;
-  onUpdateReward: (rewardId: string, updates: Partial<Reward>) => void;
-  onDeleteReward: (rewardId: string) => void;
-  onUpdateSupply: (rewardId: string, additionalSupply: number) => void;
-  onCreateReward: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => void;
+  onUpdateReward: (rewardId: string, updates: Partial<Reward>, refreshCallback?: () => Promise<void>) => void;
+  onDeleteReward: (rewardId: string, refreshCallback?: () => Promise<void>) => void;
+  onUpdateSupply: (rewardId: string, additionalSupply: number, refreshCallback?: () => Promise<void>) => void;
+  onCreateReward: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number, refreshCallback?: () => Promise<void>) => void;
 }
 
 export const MerchantTab: FC<MerchantTabProps> = ({
@@ -60,35 +60,19 @@ export const MerchantTab: FC<MerchantTabProps> = ({
 
   // Enhanced handlers that refresh local data
   const handleUpdateReward = async (rewardId: string, updates: Partial<Reward>) => {
-    await onUpdateReward(rewardId, updates);
-    // Refresh immediately after transaction completes (success or failure)
-    setTimeout(() => {
-      loadMerchantRewards();
-    }, 1000);
+    await onUpdateReward(rewardId, updates, loadMerchantRewards);
   };
 
   const handleDeleteReward = async (rewardId: string) => {
-    await onDeleteReward(rewardId);
-    // Refresh immediately after transaction completes (success or failure)
-    setTimeout(() => {
-      loadMerchantRewards();
-    }, 1000);
+    await onDeleteReward(rewardId, loadMerchantRewards);
   };
 
   const handleUpdateSupply = async (rewardId: string, additionalSupply: number) => {
-    await onUpdateSupply(rewardId, additionalSupply);
-    // Refresh immediately after transaction completes (success or failure)
-    setTimeout(() => {
-      loadMerchantRewards();
-    }, 1000);
+    await onUpdateSupply(rewardId, additionalSupply, loadMerchantRewards);
   };
 
   const handleCreateReward = async (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => {
-    await onCreateReward(name, description, pointsCost, imageUrl, supply);
-    // Refresh immediately after transaction completes (success or failure)
-    setTimeout(() => {
-      loadMerchantRewards();
-    }, 1000);
+    await onCreateReward(name, description, pointsCost, imageUrl, supply, loadMerchantRewards);
   };
 
   return (

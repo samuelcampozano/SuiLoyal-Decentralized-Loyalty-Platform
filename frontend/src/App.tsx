@@ -463,7 +463,7 @@ export default function App() {
     }
   };
 
-  const updateReward = async (rewardId: string, updates: Partial<Reward>) => {
+  const updateReward = async (rewardId: string, updates: Partial<Reward>, refreshCallback?: () => Promise<void>) => {
     if (!currentAccount?.address) {
       showNotification('Please connect your wallet first', 'error');
       return;
@@ -475,8 +475,6 @@ export default function App() {
     }
 
     try {
-      setLoading(true);
-      
       // Get user's MerchantCap
       const objects = await loyaltyService.client.getOwnedObjects({
         owner: currentAccount.address,
@@ -529,19 +527,21 @@ export default function App() {
         return;
       }
       
-      // Show wallet approval message
-      showNotification(`Please approve transaction in wallet to update ${updateType}...`, 'info');
-      
       signAndExecuteTransaction(
         {
           transactionBlock: tx as any,
         },
         {
           onSuccess: async (_result: any) => {
+            setLoading(true);
             showNotification(`Reward ${updateType} updated successfully! 🎉`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
             setTimeout(async () => {
               await loadBlockchainData();
+              if (refreshCallback) {
+                await refreshCallback();
+              }
+              setLoading(false);
             }, 5000);
           },
           onError: (error: any) => {
@@ -553,12 +553,10 @@ export default function App() {
     } catch (error) {
       console.error('Error updating reward:', error);
       showNotification('Failed to update reward', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const deleteReward = async (rewardId: string) => {
+  const deleteReward = async (rewardId: string, refreshCallback?: () => Promise<void>) => {
     if (!currentAccount?.address) {
       showNotification('Please connect your wallet first', 'error');
       return;
@@ -570,8 +568,6 @@ export default function App() {
     }
 
     try {
-      setLoading(true);
-      
       // Get user's MerchantCap
       const objects = await loyaltyService.client.getOwnedObjects({
         owner: currentAccount.address,
@@ -592,19 +588,21 @@ export default function App() {
         rewardId
       );
       
-      // Show wallet approval message
-      showNotification('Please approve transaction in wallet to delete reward...', 'info');
-      
       signAndExecuteTransaction(
         {
           transactionBlock: tx as any,
         },
         {
           onSuccess: async (_result: any) => {
+            setLoading(true);
             showNotification('Reward deleted successfully! 🗑️', 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
             setTimeout(async () => {
               await loadBlockchainData();
+              if (refreshCallback) {
+                await refreshCallback();
+              }
+              setLoading(false);
             }, 5000);
           },
           onError: (error: any) => {
@@ -616,12 +614,10 @@ export default function App() {
     } catch (error) {
       console.error('Error deleting reward:', error);
       showNotification('Failed to delete reward', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const createSingleReward = async (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => {
+  const createSingleReward = async (name: string, description: string, pointsCost: number, imageUrl: string, supply: number, refreshCallback?: () => Promise<void>) => {
     if (!currentAccount?.address) {
       showNotification('Please connect your wallet first', 'error');
       return;
@@ -633,8 +629,6 @@ export default function App() {
     }
 
     try {
-      setLoading(true);
-      
       // Get user's MerchantCap
       const objects = await loyaltyService.client.getOwnedObjects({
         owner: currentAccount.address,
@@ -659,19 +653,21 @@ export default function App() {
         supply
       );
       
-      // Show wallet approval message
-      showNotification('Please approve transaction in wallet to create reward...', 'info');
-      
       signAndExecuteTransaction(
         {
           transactionBlock: tx as any,
         },
         {
           onSuccess: async (_result: any) => {
+            setLoading(true);
             showNotification(`Reward "${name}" created successfully! 🎉`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
             setTimeout(async () => {
               await loadBlockchainData();
+              if (refreshCallback) {
+                await refreshCallback();
+              }
+              setLoading(false);
             }, 5000);
           },
           onError: (error: any) => {
@@ -683,12 +679,10 @@ export default function App() {
     } catch (error) {
       console.error('Error creating reward:', error);
       showNotification('Failed to create reward', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const updateRewardSupply = async (rewardId: string, additionalSupply: number) => {
+  const updateRewardSupply = async (rewardId: string, additionalSupply: number, refreshCallback?: () => Promise<void>) => {
     if (!currentAccount?.address) {
       showNotification('Please connect your wallet first', 'error');
       return;
@@ -699,14 +693,12 @@ export default function App() {
       return;
     }
 
-    if (additionalSupply <= 0) {
-      showNotification('Additional supply must be greater than 0', 'error');
+    if (additionalSupply === 0) {
+      showNotification('No supply change requested', 'info');
       return;
     }
 
     try {
-      setLoading(true);
-      
       // Get user's MerchantCap
       const objects = await loyaltyService.client.getOwnedObjects({
         owner: currentAccount.address,
@@ -728,19 +720,23 @@ export default function App() {
         additionalSupply
       );
       
-      // Show wallet approval message
-      showNotification(`Please approve transaction in wallet to add ${additionalSupply} items...`, 'info');
-      
       signAndExecuteTransaction(
         {
           transactionBlock: tx as any,
         },
         {
           onSuccess: async (_result: any) => {
-            showNotification(`Added ${additionalSupply} items to reward supply! 📦`, 'success');
+            setLoading(true);
+            const action = additionalSupply > 0 ? 'Added' : 'Reduced';
+            const amount = Math.abs(additionalSupply);
+            showNotification(`${action} ${amount} items ${additionalSupply > 0 ? 'to' : 'from'} reward supply! 📦`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
             setTimeout(async () => {
               await loadBlockchainData();
+              if (refreshCallback) {
+                await refreshCallback();
+              }
+              setLoading(false);
             }, 5000);
           },
           onError: (error: any) => {
@@ -752,8 +748,6 @@ export default function App() {
     } catch (error) {
       console.error('Error updating reward supply:', error);
       showNotification('Failed to update reward supply', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 

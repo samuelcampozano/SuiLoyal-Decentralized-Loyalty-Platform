@@ -43,22 +43,17 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
 
   const handleSaveEdit = () => {
     if (!editingReward) return;
-
+    
+    // Don't call transaction functions immediately - just prepare the transaction
+    // The actual transaction will be handled by the wallet approval flow
+    
     if (editingReward.field === 'supply') {
-      // Handle supply update differently
+      // Handle supply update - allow both increase and decrease
       const newSupply = Number(editingReward.value);
       const currentSupply = rewards.find(r => r.id === editingReward.id)?.remaining || 0;
       if (newSupply !== currentSupply) {
-        if (newSupply > currentSupply) {
-          // Add supply
-          onUpdateSupply(editingReward.id, newSupply - currentSupply);
-        } else {
-          // Note: We can't reduce supply below current level in this implementation
-          // Could add a separate function for this if needed
-          alert('Cannot reduce supply below current level');
-          setEditingReward(null);
-          return;
-        }
+        // Allow both increase and decrease supply
+        onUpdateSupply(editingReward.id, newSupply - currentSupply);
       }
     } else {
       const updates: Partial<Reward> = {};
@@ -76,8 +71,8 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
       onUpdateReward(editingReward.id, updates);
     }
     
-    // Don't close edit mode here - let it stay open until user decides
-    // setEditingReward(null);
+    // Clear the editing state only after transaction is initiated
+    setEditingReward(null);
   };
 
   const handleCancelEdit = () => {
