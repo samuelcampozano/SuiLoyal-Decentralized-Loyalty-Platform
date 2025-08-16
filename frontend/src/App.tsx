@@ -788,6 +788,8 @@ export default function App() {
             pointsBalance={pointsBalance}
             loading={loading}
             redeemReward={redeemReward}
+            isMerchant={isMerchant}
+            onCreateReward={createSingleReward}
           />
         )}
         {currentTab === 'merchant' && (

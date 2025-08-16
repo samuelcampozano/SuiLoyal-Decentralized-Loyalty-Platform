@@ -7,6 +7,8 @@ interface RewardsTabProps {
   pointsBalance: number;
   loading: boolean;
   redeemReward: (reward: Reward) => void;
+  isMerchant?: boolean;
+  onCreateReward?: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => void;
 }
 
 export const RewardsTab: FC<RewardsTabProps> = ({
@@ -15,6 +17,8 @@ export const RewardsTab: FC<RewardsTabProps> = ({
   pointsBalance,
   loading,
   redeemReward,
+  isMerchant = false,
+  onCreateReward,
 }) => (
   <div className="space-y-6">
     <div className="bg-white rounded-xl p-6 shadow-lg">
@@ -26,11 +30,38 @@ export const RewardsTab: FC<RewardsTabProps> = ({
           <div className="text-6xl mb-4">🏪</div>
           <h3 className="text-xl font-bold mb-2">No Reward Templates Available</h3>
           <p className="text-gray-600 mb-4">
-            Merchants haven't created reward templates yet.
+            {isMerchant ? 
+              "You haven't created any rewards yet. Create your first reward to get started!" :
+              "Merchants haven't created reward templates yet."
+            }
           </p>
-          <p className="text-sm text-blue-600">
-            💡 Tip: If you're a registered merchant, go to the Merchant tab and click "Create Demo Rewards"
-          </p>
+          {isMerchant && onCreateReward ? (
+            <div className="mt-6">
+              <button
+                onClick={() => {
+                  // Create a sample reward - merchants can edit it afterwards
+                  onCreateReward(
+                    "Welcome Reward",
+                    "Special reward for new customers",
+                    100,
+                    "🎁",
+                    10
+                  );
+                }}
+                disabled={!isConnected || loading}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg disabled:bg-gray-300 transition-all"
+              >
+                🚀 Create Your First Reward
+              </button>
+              <p className="text-sm text-gray-500 mt-2">
+                You can edit the details after creation in the Merchant tab
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-blue-600">
+              💡 Tip: If you're a registered merchant, go to the Merchant tab to create rewards
+            </p>
+          )}
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
