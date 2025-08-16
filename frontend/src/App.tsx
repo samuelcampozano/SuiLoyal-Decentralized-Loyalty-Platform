@@ -682,7 +682,7 @@ export default function App() {
     }
   };
 
-  const updateRewardSupply = async (rewardId: string, additionalSupply: number, refreshCallback?: () => Promise<void>) => {
+  const updateRewardSupply = async (rewardId: string, newSupply: number, refreshCallback?: () => Promise<void>) => {
     if (!currentAccount?.address) {
       showNotification('Please connect your wallet first', 'error');
       return;
@@ -693,8 +693,8 @@ export default function App() {
       return;
     }
 
-    if (additionalSupply === 0) {
-      showNotification('No supply change requested', 'info');
+    if (newSupply < 0) {
+      showNotification('Supply cannot be negative', 'error');
       return;
     }
 
@@ -714,10 +714,11 @@ export default function App() {
         return;
       }
 
-      const tx = loyaltyService.updateRewardSupplyTransaction(
+      // Use the new set_reward_supply function to set absolute supply
+      const tx = loyaltyService.setRewardSupplyTransaction(
         merchantCapObj.data.objectId,
         rewardId,
-        additionalSupply
+        newSupply
       );
       
       signAndExecuteTransaction(
@@ -727,9 +728,7 @@ export default function App() {
         {
           onSuccess: async (_result: any) => {
             setLoading(true);
-            const action = additionalSupply > 0 ? 'Added' : 'Reduced';
-            const amount = Math.abs(additionalSupply);
-            showNotification(`${action} ${amount} items ${additionalSupply > 0 ? 'to' : 'from'} reward supply! 📦`, 'success');
+            showNotification(`Supply updated to ${newSupply} items! 📦`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
             setTimeout(async () => {
               await loadBlockchainData();
@@ -806,7 +805,6 @@ export default function App() {
             onDeleteReward={deleteReward}
             onUpdateSupply={updateRewardSupply}
             onCreateReward={createSingleReward}
-            showNotification={showNotification}
           />
         )}
         {currentTab === 'profile' && (

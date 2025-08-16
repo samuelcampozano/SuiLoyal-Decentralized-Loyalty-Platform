@@ -7,9 +7,8 @@ interface MerchantRewardManagerProps {
   loading: boolean;
   onUpdateReward: (rewardId: string, updates: Partial<Reward>) => void;
   onDeleteReward: (rewardId: string) => void;
-  onUpdateSupply: (rewardId: string, additionalSupply: number) => void;
+  onUpdateSupply: (rewardId: string, newSupply: number) => void;
   onCreateReward: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => void;
-  showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 interface EditingReward {
@@ -26,7 +25,6 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
   onDeleteReward,
   onUpdateSupply,
   onCreateReward,
-  showNotification,
 }) => {
   const [editingReward, setEditingReward] = useState<EditingReward | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -50,19 +48,13 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
     // The actual transaction will be handled by the wallet approval flow
     
     if (editingReward.field === 'supply') {
-      // Handle supply update - currently only increases are supported by smart contract
+      // Handle supply update - now supports both increase and decrease with new smart contract
       const newSupply = Number(editingReward.value);
       const currentSupply = rewards.find(r => r.id === editingReward.id)?.remaining || 0;
       
       if (newSupply !== currentSupply) {
-        if (newSupply < currentSupply) {
-          // For now, we can't reduce supply as smart contract only has add_reward_supply
-          // Show a helpful message to the user
-          showNotification(`Cannot reduce supply from ${currentSupply} to ${newSupply}. Currently only supply increases are supported. Please set a value of ${currentSupply} or higher.`, 'error');
-          return;
-        }
-        // Only allow increases
-        onUpdateSupply(editingReward.id, newSupply - currentSupply);
+        // Pass the absolute new supply value, not the difference
+        onUpdateSupply(editingReward.id, newSupply);
       }
     } else {
       const updates: Partial<Reward> = {};
@@ -354,7 +346,7 @@ export const MerchantRewardManager: FC<MerchantRewardManagerProps> = ({
                 {renderEditableField(reward.id, 'imageUrl', reward.imageUrl, 'Image/Emoji')}
               </div>
               <div>
-                {renderEditableField(reward.id, 'supply', reward.remaining, 'Current Supply (can only increase)', 'number')}
+                {renderEditableField(reward.id, 'supply', reward.remaining, 'Current Supply (set any amount)', 'number')}
               </div>
             </div>
 

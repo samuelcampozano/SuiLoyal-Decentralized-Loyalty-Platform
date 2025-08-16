@@ -14,9 +14,8 @@ interface MerchantTabProps {
   createDemoRewards: () => void;
   onUpdateReward: (rewardId: string, updates: Partial<Reward>, refreshCallback?: () => Promise<void>) => void;
   onDeleteReward: (rewardId: string, refreshCallback?: () => Promise<void>) => void;
-  onUpdateSupply: (rewardId: string, additionalSupply: number, refreshCallback?: () => Promise<void>) => void;
+  onUpdateSupply: (rewardId: string, newSupply: number, refreshCallback?: () => Promise<void>) => void;
   onCreateReward: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number, refreshCallback?: () => Promise<void>) => void;
-  showNotification: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 export const MerchantTab: FC<MerchantTabProps> = ({
@@ -33,7 +32,6 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   onDeleteReward,
   onUpdateSupply,
   onCreateReward,
-  showNotification,
 }) => {
   const [merchantRewards, setMerchantRewards] = useState<Reward[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'rewards'>('overview');
@@ -69,8 +67,8 @@ export const MerchantTab: FC<MerchantTabProps> = ({
     await onDeleteReward(rewardId, loadMerchantRewards);
   };
 
-  const handleUpdateSupply = async (rewardId: string, additionalSupply: number) => {
-    await onUpdateSupply(rewardId, additionalSupply, loadMerchantRewards);
+  const handleUpdateSupply = async (rewardId: string, newSupply: number) => {
+    await onUpdateSupply(rewardId, newSupply, loadMerchantRewards);
   };
 
   const handleCreateReward = async (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => {
@@ -252,7 +250,6 @@ export const MerchantTab: FC<MerchantTabProps> = ({
                     onDeleteReward={handleDeleteReward}
                     onUpdateSupply={handleUpdateSupply}
                     onCreateReward={handleCreateReward}
-                    showNotification={showNotification}
                   />
                 )}
               </div>

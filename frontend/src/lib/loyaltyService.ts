@@ -622,7 +622,7 @@ export class LoyaltyService {
     return tx;
   }
 
-  // Update reward supply transaction
+  // Update reward supply transaction (add additional supply)
   updateRewardSupplyTransaction(
     merchantCapId: string,
     rewardTemplateId: string,
@@ -636,6 +636,26 @@ export class LoyaltyService {
         tx.object(merchantCapId),
         tx.object(rewardTemplateId),
         tx.pure(bcs.u64().serialize(additionalSupply)),
+      ],
+    });
+
+    return tx;
+  }
+
+  // Set reward supply to a specific amount transaction
+  setRewardSupplyTransaction(
+    merchantCapId: string,
+    rewardTemplateId: string,
+    newSupply: number
+  ): Transaction {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${PACKAGE_ID}::loyalty_system::set_reward_supply`,
+      arguments: [
+        tx.object(merchantCapId),
+        tx.object(rewardTemplateId),
+        tx.pure(bcs.u64().serialize(newSupply)),
       ],
     });
 
