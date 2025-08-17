@@ -10,6 +10,7 @@ import { MerchantTab } from './components/tabs/MerchantTab';
 import { ProfileTab } from './components/tabs/ProfileTab';
 import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as NotificationType } from './types';
 import { loyaltyService } from './lib/loyaltyService';
+import { PACKAGE_ID } from './config';
 
 
 export default function App() {
@@ -202,12 +203,12 @@ export default function App() {
 
       // Find MerchantCap (from new contract)
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
+        obj.data?.type?.includes(`${PACKAGE_ID}::loyalty_system::MerchantCap`)
       );
 
       // Find LoyaltyAccount (from new contract)
       const loyaltyAccountObj = objects.data.find(obj => 
-        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::LoyaltyAccount')
+        obj.data?.type?.includes(`${PACKAGE_ID}::loyalty_system::LoyaltyAccount`)
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -312,7 +313,7 @@ export default function App() {
         });
 
         const loyaltyAccountObj = objects.data.find(obj => 
-          obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::LoyaltyAccount')
+          obj.data?.type?.includes(`${PACKAGE_ID}::loyalty_system::LoyaltyAccount`)
         );
 
         if (!loyaltyAccountObj?.data?.objectId) {
@@ -392,7 +393,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
+        obj.data?.type?.includes(`${PACKAGE_ID}::loyalty_system::MerchantCap`)
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -482,7 +483,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
+        obj.data?.type?.includes(`${PACKAGE_ID}::loyalty_system::MerchantCap`)
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -575,7 +576,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
+        obj.data?.type?.includes(`${PACKAGE_ID}::loyalty_system::MerchantCap`)
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -636,7 +637,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
+        obj.data?.type?.includes(`${PACKAGE_ID}::loyalty_system::MerchantCap`)
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -706,7 +707,7 @@ export default function App() {
       });
 
       const merchantCapObj = objects.data.find(obj => 
-        obj.data?.type?.includes('0x661fd7b26d051e8a654a2623fdd6893f8670025e0bed9cceea83241633d49d8c::loyalty_system::MerchantCap')
+        obj.data?.type?.includes(`${PACKAGE_ID}::loyalty_system::MerchantCap`)
       );
 
       if (!merchantCapObj?.data?.objectId) {
@@ -789,7 +790,16 @@ export default function App() {
             loading={loading}
             redeemReward={redeemReward}
             isMerchant={isMerchant}
-            onCreateReward={createSingleReward}
+            onNavigateToMerchant={() => {
+              setCurrentTab('merchant');
+              // Small delay to allow tab to load, then scroll to rewards section
+              setTimeout(() => {
+                const rewardsButton = document.querySelector('[data-rewards-tab]');
+                if (rewardsButton) {
+                  (rewardsButton as HTMLElement).click();
+                }
+              }, 100);
+            }}
           />
         )}
         {currentTab === 'merchant' && (
