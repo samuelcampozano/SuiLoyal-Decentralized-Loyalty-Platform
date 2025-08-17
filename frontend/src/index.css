@@ -1,3 +1,147 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Enhanced Global Styles */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+}
+
+@layer components {
+  /* Glass Morphism Base */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .glass-card {
+    @apply glass rounded-2xl shadow-card;
+  }
+  
+  .glass-nav {
+    @apply glass border-b border-white/10 shadow-glow;
+  }
+  
+  /* Button Variants */
+  .btn-primary {
+    @apply bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 
+           text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 
+           shadow-card hover:shadow-card-hover transform hover:scale-105 
+           active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand-500/50;
+  }
+  
+  .btn-secondary {
+    @apply bg-white/10 hover:bg-white/20 text-dark-800 dark:text-white 
+           border border-white/20 hover:border-white/30 px-6 py-3 rounded-xl 
+           font-medium transition-all duration-200 backdrop-blur-sm
+           focus:outline-none focus:ring-2 focus:ring-brand-500/50;
+  }
+  
+  .btn-success {
+    @apply bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 
+           text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 
+           shadow-card hover:shadow-card-hover transform hover:scale-105;
+  }
+  
+  .btn-error {
+    @apply bg-gradient-to-r from-error-500 to-error-600 hover:from-error-600 hover:to-error-700 
+           text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 
+           shadow-card hover:shadow-card-hover transform hover:scale-105;
+  }
+  
+  /* Input Styles */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-dark-200 bg-white/50 
+           backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 
+           focus:border-brand-500 transition-all duration-200 placeholder:text-dark-400;
+  }
+  
+  /* Card Styles */
+  .reward-card {
+    @apply glass-card p-6 hover:shadow-card-hover transition-all duration-300 
+           transform hover:scale-105 hover:bg-white/15 cursor-pointer;
+  }
+  
+  .merchant-card {
+    @apply glass-card p-8 hover:shadow-card-xl transition-all duration-300 
+           transform hover:scale-102 border-l-4 border-l-brand-500;
+  }
+  
+  /* Animation Utilities */
+  .animate-entrance {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .animate-entrance-delayed {
+    animation: fadeIn 0.5s ease-out 0.1s both;
+  }
+  
+  /* Status Indicators */
+  .status-success {
+    @apply bg-success-100 text-success-800 border border-success-200 px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .status-warning {
+    @apply bg-warning-100 text-warning-800 border border-warning-200 px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .status-error {
+    @apply bg-error-100 text-error-800 border border-error-200 px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-600 to-sui-600 bg-clip-text text-transparent font-bold;
+  }
+  
+  /* Hover Glow Effects */
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-glow;
+  }
+  
+  .hover-glow-lg {
+    @apply transition-all duration-300 hover:shadow-glow-lg;
+  }
+  
+  /* Loading Shimmer */
+  .shimmer {
+    @apply relative overflow-hidden;
+  }
+  
+  .shimmer::before {
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+           animate-shimmer;
+    content: '';
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.brand.300') theme('colors.gray.100');
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-brand-300 rounded-full hover:bg-brand-400;
+  }
+  
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+}
