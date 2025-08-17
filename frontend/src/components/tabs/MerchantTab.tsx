@@ -110,43 +110,38 @@ export const MerchantTab: FC<MerchantTabProps> = ({
           )}
         </div>
 
-        <div className={`${hasCreatedRewards ? 'bg-green-50 border-green-200' : 'bg-purple-50 border-purple-200'} border rounded-lg p-4 mb-6`}>
-          <h3 className="font-bold text-lg mb-2">
-            {hasCreatedRewards ? '✅ Reward Templates Created' : 'Create Reward Templates'}
-          </h3>
-          {hasCreatedRewards ? (
-            <div>
-              <p className="text-sm text-green-700 mb-2">
-                🎉 Demo reward templates have been created successfully! Customers can now redeem:
-              </p>
-              <ul className="text-sm text-green-600 ml-4 mb-2">
-                <li>• ☕ Free Coffee (100 points)</li>
-                <li>• 🥐 Pastry Combo (150 points)</li>
-                <li>• 🎫 10% Off Coupon (200 points)</li>
-              </ul>
-              <div className="flex items-center gap-2">
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
-                  Rewards Active
-                </span>
-                <span className="text-green-600 text-xs">Available in Rewards tab</span>
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm text-purple-800 mb-4">
-                {isMerchant 
-                  ? 'Create on-chain reward templates that customers can redeem with their points'
-                  : 'You must register as a merchant first to create reward templates'
-                }
-              </p>
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="font-bold text-lg mb-2 text-blue-800">🎁 Reward Management</h3>
+          <p className="text-sm text-blue-700 mb-4">
+            {isMerchant 
+              ? 'Create custom reward templates that customers can redeem with their loyalty points. Go to the "Manage Rewards" tab below to create your own rewards with custom names, descriptions, and point costs.'
+              : 'You must register as a merchant first to create reward templates'
+            }
+          </p>
+          {isMerchant && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => setActiveTab('rewards')}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all"
+              >
+                🚀 Create Custom Rewards
+              </button>
               <button
                 onClick={createDemoRewards}
-                disabled={!isConnected || loading || !isMerchant || hasCreatedRewards}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300 transition-colors"
+                disabled={!isConnected || loading || hasCreatedRewards}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium disabled:bg-gray-300 transition-colors text-sm"
               >
-                {!isMerchant ? 'Register as Merchant First' : 'Create Demo Rewards (Coffee, Pastry, Coupon)'}
+                {hasCreatedRewards ? '✅ Demo Rewards Created' : 'Quick Demo (Coffee, Pastry, Coupon)'}
               </button>
-            </>
+            </div>
+          )}
+          {hasCreatedRewards && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
+                Rewards Active
+              </span>
+              <span className="text-green-600 text-xs">View your rewards in the "Manage Rewards" tab below</span>
+            </div>
           )}
         </div>
 
@@ -198,6 +193,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab('rewards')}
+                data-rewards-tab
                 className={`px-4 py-2 font-medium ${activeTab === 'rewards' 
                   ? 'border-b-2 border-blue-500 text-blue-600' 
                   : 'text-gray-500 hover:text-gray-700'

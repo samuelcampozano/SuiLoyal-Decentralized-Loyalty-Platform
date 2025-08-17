@@ -8,7 +8,7 @@ interface RewardsTabProps {
   loading: boolean;
   redeemReward: (reward: Reward) => void;
   isMerchant?: boolean;
-  onCreateReward?: (name: string, description: string, pointsCost: number, imageUrl: string, supply: number) => void;
+  onNavigateToMerchant?: () => void;
 }
 
 export const RewardsTab: FC<RewardsTabProps> = ({
@@ -18,7 +18,7 @@ export const RewardsTab: FC<RewardsTabProps> = ({
   loading,
   redeemReward,
   isMerchant = false,
-  onCreateReward,
+  onNavigateToMerchant,
 }) => (
   <div className="space-y-6">
     <div className="bg-white rounded-xl p-6 shadow-lg">
@@ -35,31 +35,22 @@ export const RewardsTab: FC<RewardsTabProps> = ({
               "Merchants haven't created reward templates yet."
             }
           </p>
-          {isMerchant && onCreateReward ? (
+          {isMerchant && onNavigateToMerchant ? (
             <div className="mt-6">
               <button
-                onClick={() => {
-                  // Create a sample reward - merchants can edit it afterwards
-                  onCreateReward(
-                    "Welcome Reward",
-                    "Special reward for new customers",
-                    100,
-                    "🎁",
-                    10
-                  );
-                }}
+                onClick={onNavigateToMerchant}
                 disabled={!isConnected || loading}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg disabled:bg-gray-300 transition-all"
               >
-                🚀 Create Your First Reward
+                ✨ Create Custom Reward
               </button>
               <p className="text-sm text-gray-500 mt-2">
-                You can edit the details after creation in the Merchant tab
+                Design your own rewards with custom names, descriptions, and point costs
               </p>
             </div>
           ) : (
             <p className="text-sm text-blue-600">
-              💡 Tip: If you're a registered merchant, go to the Merchant tab to create rewards
+              💡 Tip: If you're a registered merchant, go to the Merchant tab to create custom rewards
             </p>
           )}
         </div>
