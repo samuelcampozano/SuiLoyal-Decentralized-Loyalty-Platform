@@ -321,19 +321,33 @@ export class LoyaltyService {
 
   private async extractRewardName(tx: any): Promise<string> {
     try {
+      console.log('🔍 [DEBUG] Extracting reward name from transaction:', tx.digest);
+      console.log('🔍 [DEBUG] Full transaction data:', JSON.stringify(tx, null, 2));
+      
       // Try to find the reward template ID from the transaction
       if (tx.transaction?.data?.transaction?.transactions) {
-        for (const transaction of tx.transaction.data.transaction.transactions) {
+        console.log('🔍 [DEBUG] Found transaction.data.transaction.transactions');
+        for (const [index, transaction] of tx.transaction.data.transaction.transactions.entries()) {
+          console.log(`🔍 [DEBUG] Processing transaction ${index}:`, JSON.stringify(transaction, null, 2));
+          
           if (transaction.MoveCall?.function === 'redeem_reward') {
+            console.log('🔍 [DEBUG] Found redeem_reward function call');
             // Look for reward template object ID in arguments
             const args = transaction.MoveCall.arguments;
+            console.log('🔍 [DEBUG] Arguments:', JSON.stringify(args, null, 2));
+            
             if (args && args.length >= 3) {
               // The third argument should be the reward template object
               const rewardTemplateArg = args[2];
+              console.log('🔍 [DEBUG] Reward template argument:', JSON.stringify(rewardTemplateArg, null, 2));
+              
               if (rewardTemplateArg?.Object) {
                 const objectId = rewardTemplateArg.Object;
+                console.log('🔍 [DEBUG] Found reward template object ID:', objectId);
                 // Fetch the actual reward name from the blockchain
-                return await this.getRewardNameFromCache(objectId);
+                const rewardName = await this.getRewardNameFromCache(objectId);
+                console.log('🔍 [DEBUG] Resolved reward name:', rewardName);
+                return rewardName;
               }
             }
           }
@@ -342,23 +356,30 @@ export class LoyaltyService {
       
       // Fallback to transaction events
       if (tx.events) {
-        for (const event of tx.events) {
+        console.log('🔍 [DEBUG] Checking transaction events:', JSON.stringify(tx.events, null, 2));
+        for (const [index, event] of tx.events.entries()) {
+          console.log(`🔍 [DEBUG] Processing event ${index}:`, JSON.stringify(event, null, 2));
+          
           if (event.type?.includes('RewardRedeemed')) {
+            console.log('🔍 [DEBUG] Found RewardRedeemed event');
             // Try to extract reward name from event data
             if (event.parsedJson?.reward_name) {
+              console.log('🔍 [DEBUG] Found reward_name in event:', event.parsedJson.reward_name);
               return event.parsedJson.reward_name;
             }
             // If event has reward template ID, use that
             if (event.parsedJson?.reward_template_id) {
+              console.log('🔍 [DEBUG] Found reward_template_id in event:', event.parsedJson.reward_template_id);
               return await this.getRewardNameFromCache(event.parsedJson.reward_template_id);
             }
           }
         }
       }
       
+      console.log('🔍 [DEBUG] No reward name found, falling back to "Reward Item"');
       return 'Reward Item';
     } catch (error) {
-      console.warn('Error extracting reward name:', error);
+      console.warn('🔍 [DEBUG] Error extracting reward name:', error);
       return 'Reward Item';
     }
   }
@@ -394,6 +415,7 @@ export class LoyaltyService {
   // Fetch reward name from the blockchain
   private async fetchRewardName(objectId: string): Promise<string> {
     try {
+      console.log('🔍 [DEBUG] Fetching reward object for ID:', objectId);
       const rewardObject = await this.client.getObject({
         id: objectId,
         options: {
@@ -401,17 +423,23 @@ export class LoyaltyService {
         },
       });
       
+      console.log('🔍 [DEBUG] Reward object response:', JSON.stringify(rewardObject, null, 2));
+      
       if (rewardObject.data?.content && 'fields' in rewardObject.data.content) {
         const fields = rewardObject.data.content.fields as any;
+        console.log('🔍 [DEBUG] Reward object fields:', JSON.stringify(fields, null, 2));
+        
         // Check if it's a RewardTemplate with a name field
         if (fields.name) {
+          console.log('🔍 [DEBUG] Found reward name in fields:', fields.name);
           return fields.name;
         }
       }
       
+      console.log('🔍 [DEBUG] No name field found, using fallback');
       return 'Reward Item';
     } catch (error) {
-      console.warn('Error fetching reward object:', error);
+      console.warn('🔍 [DEBUG] Error fetching reward object:', error);
       return 'Reward Item';
     }
   }
