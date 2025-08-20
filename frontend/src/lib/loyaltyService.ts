@@ -5,6 +5,8 @@ import { PACKAGE_ID, PLATFORM_ID, SUI_CONFIG } from '../config';
 
 export class LoyaltyService {
   public client: SuiClient;
+  private rewardNameCache: Map<string, string> = new Map();
+  private rewardCachePromises: Map<string, Promise<string>> = new Map();
 
   constructor() {
     this.client = new SuiClient({
@@ -138,10 +140,15 @@ export class LoyaltyService {
                   const fields = rewardObj.data.content.fields as any;
                   console.log('Raw reward fields:', fields);
                   
+                  const rewardName = fields.name || 'Unknown Reward';
+                  
+                  // Cache the reward name for future lookups
+                  this.rewardNameCache.set(change.objectId, rewardName);
+                  
                   rewards.push({
                     id: change.objectId,
                     merchantId: fields.merchant || 'unknown',
-                    name: fields.name || 'Unknown Reward',
+                    name: rewardName,
                     description: fields.description || 'No description',
                     pointsCost: parseInt(fields.points_cost) || 0,
                     imageUrl: fields.image_url || '🎁',
@@ -157,6 +164,7 @@ export class LoyaltyService {
       }
 
       console.log('Loaded reward templates from transactions:', rewards);
+      console.log('Cached reward names:', Array.from(this.rewardNameCache.entries()));
       return rewards;
     } catch (error) {
       console.error('Error fetching reward templates:', error);
@@ -168,10 +176,21 @@ export class LoyaltyService {
     }
   }
 
+  // Ensure reward cache is populated
+  private async ensureRewardCachePopulated() {
+    if (this.rewardNameCache.size === 0) {
+      console.log('🔄 Populating reward cache...');
+      await this.getRewardTemplates();
+    }
+  }
+
   // Get transaction history for a user
   async getUserTransactionHistory(userAddress: string) {
     console.log('🔍 Fetching transaction history for:', userAddress);
     console.log('📦 Looking for package ID:', PACKAGE_ID);
+    
+    // Ensure reward cache is populated for better reward name resolution
+    await this.ensureRewardCachePopulated();
     
     try {
       // Query by package only (since FromOrToAddress is not supported)
@@ -234,10 +253,11 @@ export class LoyaltyService {
 
       console.log('🎯 Loyalty transactions found:', loyaltyTransactions.length);
 
-      const mappedTransactions = loyaltyTransactions.map(tx => {
+      // Process transactions with async reward name extraction
+      const mappedTransactions = await Promise.all(loyaltyTransactions.map(async (tx) => {
         const txType = this.determineTransactionType(tx);
         const amount = this.extractTransactionAmount(tx, txType);
-        const rewardName = txType === 'redeemed' ? this.extractRewardName(tx) : undefined;
+        const rewardName = txType === 'redeemed' ? await this.extractRewardName(tx) : undefined;
         
         console.log('🔄 Processing transaction:', {
           digest: tx.digest,
@@ -255,7 +275,7 @@ export class LoyaltyService {
           digest: tx.digest,
           rewardName: rewardName,
         };
-      });
+      }));
 
       // Sort transactions by timestamp (newest first)
       mappedTransactions.sort((a, b) => {
@@ -299,7 +319,7 @@ export class LoyaltyService {
     return functions;
   }
 
-  private extractRewardName(tx: any): string | undefined {
+  private async extractRewardName(tx: any): Promise<string> {
     try {
       // Try to find the reward template ID from the transaction
       if (tx.transaction?.data?.transaction?.transactions) {
@@ -311,11 +331,9 @@ export class LoyaltyService {
               // The third argument should be the reward template object
               const rewardTemplateArg = args[2];
               if (rewardTemplateArg?.Object) {
-                // Return a descriptive name based on known rewards
                 const objectId = rewardTemplateArg.Object;
-                // For now, return a generic name since we'd need to query the object
-                // In a full implementation, we'd cache reward names or query them
-                return this.getRewardNameFromCache(objectId);
+                // Fetch the actual reward name from the blockchain
+                return await this.getRewardNameFromCache(objectId);
               }
             }
           }
@@ -330,6 +348,10 @@ export class LoyaltyService {
             if (event.parsedJson?.reward_name) {
               return event.parsedJson.reward_name;
             }
+            // If event has reward template ID, use that
+            if (event.parsedJson?.reward_template_id) {
+              return await this.getRewardNameFromCache(event.parsedJson.reward_template_id);
+            }
           }
         }
       }
@@ -341,17 +363,57 @@ export class LoyaltyService {
     }
   }
 
-  private getRewardNameFromCache(_objectId: string): string {
-    // Simple mapping for demo rewards - in production this would be a proper cache
-    // const rewardNames: { [key: string]: string } = {
-    //   // These would be populated with actual object IDs after reward creation
-    //   'coffee': 'Free Coffee',
-    //   'pastry': 'Pastry Combo', 
-    //   'coupon': '10% Off Coupon'
-    // };
+  // Get reward name from cache or fetch it
+  private async getRewardNameFromCache(objectId: string): Promise<string> {
+    // Check if we already have it cached
+    if (this.rewardNameCache.has(objectId)) {
+      return this.rewardNameCache.get(objectId)!;
+    }
     
-    // For now, try to infer from recent rewards or return generic name
-    return 'Reward Item';
+    // Check if we're already fetching this reward
+    if (this.rewardCachePromises.has(objectId)) {
+      return this.rewardCachePromises.get(objectId)!;
+    }
+    
+    // Create a promise to fetch the reward name
+    const fetchPromise = this.fetchRewardName(objectId);
+    this.rewardCachePromises.set(objectId, fetchPromise);
+    
+    try {
+      const rewardName = await fetchPromise;
+      this.rewardNameCache.set(objectId, rewardName);
+      this.rewardCachePromises.delete(objectId);
+      return rewardName;
+    } catch (error) {
+      this.rewardCachePromises.delete(objectId);
+      console.warn('Failed to fetch reward name for', objectId, error);
+      return 'Reward Item';
+    }
+  }
+  
+  // Fetch reward name from the blockchain
+  private async fetchRewardName(objectId: string): Promise<string> {
+    try {
+      const rewardObject = await this.client.getObject({
+        id: objectId,
+        options: {
+          showContent: true,
+        },
+      });
+      
+      if (rewardObject.data?.content && 'fields' in rewardObject.data.content) {
+        const fields = rewardObject.data.content.fields as any;
+        // Check if it's a RewardTemplate with a name field
+        if (fields.name) {
+          return fields.name;
+        }
+      }
+      
+      return 'Reward Item';
+    } catch (error) {
+      console.warn('Error fetching reward object:', error);
+      return 'Reward Item';
+    }
   }
 
   private determineTransactionType(tx: any): 'earned' | 'redeemed' | 'other' {
