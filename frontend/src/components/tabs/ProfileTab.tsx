@@ -68,7 +68,7 @@ export const ProfileTab: FC<ProfileTabProps> = ({
                   </div>
                   <div className="text-right">
                     <div className={`font-bold text-lg ${tx.amount > 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                      {tx.amount > 0 ? '+' : ''}{Math.abs(tx.amount)} pts
+                      {tx.amount > 0 ? '+' : '-'}{Math.abs(tx.amount)} pts
                     </div>
                     <div className="text-xs text-gray-500">
                       {new Date(tx.date).toLocaleString()}
