@@ -41,12 +41,11 @@ export default function App() {
         const hasDemo = rewardTemplates.some(r => 
           r.name.includes('Coffee') || r.name.includes('Pastry') || r.name.includes('Coupon')
         );
-        if (hasDemo && !hasCreatedRewards) {
-          setHasCreatedRewards(true);
-        }
+        setHasCreatedRewards(hasDemo);
       } else {
         // Show message that no rewards exist yet
         setRewards([]);
+        setHasCreatedRewards(false); // Reset when no rewards exist
         console.log('No reward templates found on blockchain');
       }
 
