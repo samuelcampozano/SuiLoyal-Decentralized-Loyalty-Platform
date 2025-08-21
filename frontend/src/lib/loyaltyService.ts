@@ -257,6 +257,7 @@ export class LoyaltyService {
       const mappedTransactions = await Promise.all(loyaltyTransactions.map(async (tx) => {
         const txType = this.determineTransactionType(tx);
         const amount = this.extractTransactionAmount(tx, txType);
+        const rewardTemplateId = txType === 'redeemed' ? this.extractRewardTemplateId(tx) : undefined;
         const rewardName = txType === 'redeemed' ? await this.extractRewardName(tx) : undefined;
         
         console.log('🔄 Processing transaction:', {
@@ -264,6 +265,7 @@ export class LoyaltyService {
           type: txType,
           amount: amount,
           timestamp: tx.timestampMs,
+          rewardTemplateId: rewardTemplateId,
           rewardName: rewardName
         });
         
@@ -273,6 +275,7 @@ export class LoyaltyService {
           amount: amount,
           timestamp: tx.timestampMs ? new Date(parseInt(tx.timestampMs)).toISOString() : new Date().toISOString(),
           digest: tx.digest,
+          rewardTemplateId: rewardTemplateId,
           rewardName: rewardName,
         };
       }));
@@ -319,67 +322,65 @@ export class LoyaltyService {
     return functions;
   }
 
-  private async extractRewardName(tx: any): Promise<string> {
+  // Extract reward template ID from transaction (non-async, faster)
+  private extractRewardTemplateId(tx: any): string | undefined {
     try {
-      console.log('🔍 [DEBUG] Extracting reward name from transaction:', tx.digest);
-      console.log('🔍 [DEBUG] Full transaction data:', JSON.stringify(tx, null, 2));
-      
-      // Try to find the reward template ID from the transaction
+      // Try to find the reward template ID from the transaction arguments
       if (tx.transaction?.data?.transaction?.transactions) {
-        console.log('🔍 [DEBUG] Found transaction.data.transaction.transactions');
-        for (const [index, transaction] of tx.transaction.data.transaction.transactions.entries()) {
-          console.log(`🔍 [DEBUG] Processing transaction ${index}:`, JSON.stringify(transaction, null, 2));
-          
+        for (const transaction of tx.transaction.data.transaction.transactions) {
           if (transaction.MoveCall?.function === 'redeem_reward') {
-            console.log('🔍 [DEBUG] Found redeem_reward function call');
             // Look for reward template object ID in arguments
             const args = transaction.MoveCall.arguments;
-            console.log('🔍 [DEBUG] Arguments:', JSON.stringify(args, null, 2));
-            
             if (args && args.length >= 3) {
               // The third argument should be the reward template object
               const rewardTemplateArg = args[2];
-              console.log('🔍 [DEBUG] Reward template argument:', JSON.stringify(rewardTemplateArg, null, 2));
-              
               if (rewardTemplateArg?.Object) {
-                const objectId = rewardTemplateArg.Object;
-                console.log('🔍 [DEBUG] Found reward template object ID:', objectId);
-                // Fetch the actual reward name from the blockchain
-                const rewardName = await this.getRewardNameFromCache(objectId);
-                console.log('🔍 [DEBUG] Resolved reward name:', rewardName);
-                return rewardName;
+                return rewardTemplateArg.Object;
               }
             }
           }
         }
       }
       
+      return undefined;
+    } catch (error) {
+      console.warn('Error extracting reward template ID:', error);
+      return undefined;
+    }
+  }
+
+  private async extractRewardName(tx: any): Promise<string> {
+    try {
+      // First try to get the reward template ID and use cache
+      const rewardTemplateId = this.extractRewardTemplateId(tx);
+      if (rewardTemplateId) {
+        const cachedName = await this.getRewardNameFromCache(rewardTemplateId);
+        if (cachedName !== 'Reward Item') {
+          return cachedName;
+        }
+      }
+      
       // Fallback to transaction events
       if (tx.events) {
-        console.log('🔍 [DEBUG] Checking transaction events:', JSON.stringify(tx.events, null, 2));
-        for (const [index, event] of tx.events.entries()) {
-          console.log(`🔍 [DEBUG] Processing event ${index}:`, JSON.stringify(event, null, 2));
-          
-          if (event.type?.includes('RewardRedeemed')) {
-            console.log('🔍 [DEBUG] Found RewardRedeemed event');
-            // Try to extract reward name from event data
+        for (const event of tx.events) {
+          if (event.type?.includes('PointsRedeemed')) {
+            // NEW: Extract reward name directly from the enhanced event
             if (event.parsedJson?.reward_name) {
-              console.log('🔍 [DEBUG] Found reward_name in event:', event.parsedJson.reward_name);
+              console.log('✅ Found reward_name in PointsRedeemed event:', event.parsedJson.reward_name);
               return event.parsedJson.reward_name;
             }
             // If event has reward template ID, use that
             if (event.parsedJson?.reward_template_id) {
-              console.log('🔍 [DEBUG] Found reward_template_id in event:', event.parsedJson.reward_template_id);
+              console.log('✅ Found reward_template_id in PointsRedeemed event:', event.parsedJson.reward_template_id);
               return await this.getRewardNameFromCache(event.parsedJson.reward_template_id);
             }
           }
         }
       }
       
-      console.log('🔍 [DEBUG] No reward name found, falling back to "Reward Item"');
       return 'Reward Item';
     } catch (error) {
-      console.warn('🔍 [DEBUG] Error extracting reward name:', error);
+      console.warn('Error extracting reward name:', error);
       return 'Reward Item';
     }
   }
@@ -415,7 +416,6 @@ export class LoyaltyService {
   // Fetch reward name from the blockchain
   private async fetchRewardName(objectId: string): Promise<string> {
     try {
-      console.log('🔍 [DEBUG] Fetching reward object for ID:', objectId);
       const rewardObject = await this.client.getObject({
         id: objectId,
         options: {
@@ -423,23 +423,19 @@ export class LoyaltyService {
         },
       });
       
-      console.log('🔍 [DEBUG] Reward object response:', JSON.stringify(rewardObject, null, 2));
-      
       if (rewardObject.data?.content && 'fields' in rewardObject.data.content) {
         const fields = rewardObject.data.content.fields as any;
-        console.log('🔍 [DEBUG] Reward object fields:', JSON.stringify(fields, null, 2));
         
         // Check if it's a RewardTemplate with a name field
         if (fields.name) {
-          console.log('🔍 [DEBUG] Found reward name in fields:', fields.name);
+          console.log('✅ Successfully fetched reward name:', fields.name, 'for ID:', objectId);
           return fields.name;
         }
       }
       
-      console.log('🔍 [DEBUG] No name field found, using fallback');
       return 'Reward Item';
     } catch (error) {
-      console.warn('🔍 [DEBUG] Error fetching reward object:', error);
+      console.warn('Error fetching reward object:', error);
       return 'Reward Item';
     }
   }
