@@ -110,6 +110,8 @@ module loyalty::loyalty_system {
         merchant: address,
         amount: u64,
         reward_id: ID,
+        reward_name: String,
+        reward_template_id: ID,
         timestamp: u64,
     }
 
@@ -358,6 +360,8 @@ module loyalty::loyalty_system {
             merchant: reward_template.merchant,
             amount: reward_template.points_cost,
             reward_id,
+            reward_name: reward_template.name,
+            reward_template_id: object::id(reward_template),
             timestamp: clock::timestamp_ms(clock),
         });
         

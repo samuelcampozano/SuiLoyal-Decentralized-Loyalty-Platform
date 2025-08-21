@@ -105,16 +105,38 @@ export default function App() {
       
       // Load transaction history - filter only relevant transactions
       const txHistory = await loyaltyService.getUserTransactionHistory(userAddress);
+      
+      // Create a reward lookup map for reliable name resolution
+      const rewardLookup = new Map();
+      rewards.forEach(reward => {
+        rewardLookup.set(reward.id, reward.name);
+      });
+      
       const mappedTransactions = txHistory
         .filter(tx => tx.type === 'earned' || tx.type === 'redeemed') // Only show meaningful transactions
         .map(tx => {
+          let rewardName = 'Reward Item'; // fallback
+          
+          if (tx.type === 'redeemed') {
+            // Try multiple sources for reward name (in order of reliability)
+            if (tx.rewardName && tx.rewardName !== 'Reward Item') {
+              rewardName = tx.rewardName;
+            } else if (tx.rewardTemplateId && rewardLookup.has(tx.rewardTemplateId)) {
+              rewardName = rewardLookup.get(tx.rewardTemplateId);
+            } else {
+              // Try to extract from transaction arguments via our loyalty service
+              // The extractRewardName method should have found it
+              rewardName = tx.rewardName || 'Reward Item';
+            }
+          }
+          
           return {
             id: tx.id,
             type: tx.type as 'earned' | 'redeemed',
             merchant: 'Demo Merchant',
             amount: tx.amount || 0,
             date: tx.timestamp,
-            reward: tx.type === 'redeemed' ? (tx.rewardName || 'Reward Item') : undefined
+            reward: tx.type === 'redeemed' ? rewardName : undefined
           };
         });
 
