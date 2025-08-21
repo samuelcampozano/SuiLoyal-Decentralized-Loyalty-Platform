@@ -452,27 +452,23 @@ module loyalty::loyalty_system {
         });
     }
 
-    /// Set reward template supply to a specific amount (merchant only)
+    /// Set reward template remaining supply directly (merchant only)
     public entry fun set_reward_supply(
         merchant_cap: &MerchantCap,
         reward_template: &mut RewardTemplate,
-        new_supply: u64,
+        new_remaining_supply: u64,
     ) {
         assert!(reward_template.merchant == merchant_cap.merchant_address, ENotAuthorized);
         
-        // Calculate the difference between current and new supply
+        // Calculate how many items have been redeemed
         let current_remaining = reward_template.remaining_supply;
         let redeemed_count = reward_template.total_supply - current_remaining;
         
-        // Set the new total supply and calculate remaining supply
-        reward_template.total_supply = new_supply;
+        // Set the remaining supply directly to what the user specified
+        reward_template.remaining_supply = new_remaining_supply;
         
-        // Ensure remaining supply is not negative (can't have less than already redeemed)
-        if (new_supply >= redeemed_count) {
-            reward_template.remaining_supply = new_supply - redeemed_count;
-        } else {
-            reward_template.remaining_supply = 0;
-        };
+        // Update total supply to reflect the new remaining + already redeemed
+        reward_template.total_supply = new_remaining_supply + redeemed_count;
         
         event::emit(RewardUpdated {
             reward_id: object::id(reward_template),
