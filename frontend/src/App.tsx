@@ -151,25 +151,24 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [rewards, showNotification, loyaltyAccount]);
+  }, [rewards, showNotification]);
 
   // Load user data when wallet connects/disconnects
   useEffect(() => {
-    const handleWalletChange = async () => {
-      if (currentAccount?.address) {
-        await loadUserData(currentAccount.address);
+    if (currentAccount?.address) {
+      loadUserData(currentAccount.address);
+      // Only show notification on initial connection, not on every reload
+      if (!loyaltyAccount) {
         showNotification('Wallet connected successfully!', 'success');
-      } else {
-        setPointsBalance(0);
-        setLoyaltyAccount(null);
-        setTransactions([]);
-        setIsMerchant(false);
-        setHasCreatedRewards(false);
       }
-    };
-    
-    handleWalletChange();
-  }, [currentAccount, loadUserData, showNotification]);
+    } else {
+      setPointsBalance(0);
+      setLoyaltyAccount(null);
+      setTransactions([]);
+      setIsMerchant(false);
+      setHasCreatedRewards(false);
+    }
+  }, [currentAccount]);
 
   const createLoyaltyAccount = async () => {
     if (!currentAccount?.address) {
