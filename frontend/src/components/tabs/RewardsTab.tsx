@@ -18,9 +18,10 @@ const RewardCard: FC<{
   loading: boolean;
   onRedeem: (reward: Reward) => void;
 }> = ({ reward, isConnected, pointsBalance, loading, onRedeem }) => {
-  const canRedeem = isConnected && pointsBalance >= reward.pointsCost && !loading;
+  const canRedeem = isConnected && pointsBalance >= reward.pointsCost && !loading && reward.remaining > 0;
   const isAffordable = pointsBalance >= reward.pointsCost;
-  const lowStock = reward.remaining < 10;
+  const outOfStock = reward.remaining === 0;
+  const lowStock = reward.remaining > 0 && reward.remaining < 10;
 
   return (
     <div className="reward-card group animate-entrance" style={{ animationDelay: `${Math.random() * 200}ms` }}>
@@ -29,9 +30,14 @@ const RewardCard: FC<{
         <div className="w-full h-32 bg-gradient-to-br from-brand-100 to-sui-100 rounded-xl flex items-center justify-center text-6xl group-hover:scale-110 transition-transform duration-300">
           {reward.imageUrl}
         </div>
+        {outOfStock && (
+          <div className="absolute top-2 right-2 bg-error-500 text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse shadow-card">
+            ❌ Out of Stock
+          </div>
+        )}
         {lowStock && (
           <div className="absolute top-2 right-2 status-warning animate-pulse">
-            Low Stock
+            ⚠️ Low Stock
           </div>
         )}
         {!isAffordable && isConnected && (
@@ -64,8 +70,16 @@ const RewardCard: FC<{
             <span className="text-dark-500 text-sm">points</span>
           </div>
           <div className="flex items-center space-x-1">
-            <div className={`w-2 h-2 rounded-full ${lowStock ? 'bg-warning-400' : 'bg-success-400'}`}></div>
-            <span className="text-xs text-dark-500">{reward.remaining} left</span>
+            <div className={`w-2 h-2 rounded-full ${
+              outOfStock ? 'bg-error-500' : 
+              lowStock ? 'bg-warning-400' : 
+              'bg-success-400'
+            }`}></div>
+            <span className={`text-xs ${
+              outOfStock ? 'text-error-600 font-medium' : 'text-dark-500'
+            }`}>
+              {outOfStock ? 'Out of stock' : `${reward.remaining} left`}
+            </span>
           </div>
         </div>
 
@@ -79,14 +93,17 @@ const RewardCard: FC<{
               ? 'btn-primary hover:shadow-glow-lg transform hover:scale-105 active:scale-95' 
               : !isConnected
                 ? 'bg-dark-200 text-dark-500 cursor-not-allowed'
-                : !isAffordable
+                : outOfStock
                   ? 'bg-error-100 text-error-600 border border-error-200 cursor-not-allowed'
-                  : 'bg-dark-200 text-dark-500 cursor-not-allowed'
+                  : !isAffordable
+                    ? 'bg-error-100 text-error-600 border border-error-200 cursor-not-allowed'
+                    : 'bg-dark-200 text-dark-500 cursor-not-allowed'
             }
           `}
         >
           <span className="relative z-10">
             {!isConnected ? '🔗 Connect Wallet' : 
+             outOfStock ? '❌ Out of Stock' :
              !isAffordable ? '💰 Insufficient Points' : 
              loading ? '⏳ Processing...' : '🎁 Redeem Now'}
           </span>
@@ -177,6 +194,8 @@ export const RewardsTab: FC<RewardsTabProps> = ({
               <span className="text-xs text-dark-500">In Stock</span>
               <div className="w-2 h-2 bg-warning-400 rounded-full"></div>
               <span className="text-xs text-dark-500">Low Stock</span>
+              <div className="w-2 h-2 bg-error-500 rounded-full"></div>
+              <span className="text-xs text-dark-500">Out of Stock</span>
             </div>
           </div>
         </div>
