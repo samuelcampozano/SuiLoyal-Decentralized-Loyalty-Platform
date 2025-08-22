@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useCurrentAccount, useSignAndExecuteTransactionBlock } from '@mysten/dapp-kit';
 import { Navigation } from './components/Navigation';
 import { Notification } from './components/Notification';
@@ -67,26 +67,12 @@ export default function App() {
     loadBlockchainData();
   }, []);
 
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 6000);
-  };
+  }, []);
 
-  // Load user data when wallet connects/disconnects
-  useEffect(() => {
-    if (currentAccount?.address) {
-      loadUserData(currentAccount.address);
-      showNotification('Wallet connected successfully!', 'success');
-    } else {
-      setPointsBalance(0);
-      setLoyaltyAccount(null);
-      setTransactions([]);
-      setIsMerchant(false);
-      setHasCreatedRewards(false);
-    }
-  }, [currentAccount]);
-
-  const loadUserData = async (userAddress: string) => {
+  const loadUserData = useCallback(async (userAddress: string) => {
     try {
       setLoading(true);
       
@@ -165,7 +151,25 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [rewards, showNotification, loyaltyAccount]);
+
+  // Load user data when wallet connects/disconnects
+  useEffect(() => {
+    const handleWalletChange = async () => {
+      if (currentAccount?.address) {
+        await loadUserData(currentAccount.address);
+        showNotification('Wallet connected successfully!', 'success');
+      } else {
+        setPointsBalance(0);
+        setLoyaltyAccount(null);
+        setTransactions([]);
+        setIsMerchant(false);
+        setHasCreatedRewards(false);
+      }
+    };
+    
+    handleWalletChange();
+  }, [currentAccount, loadUserData, showNotification]);
 
   const createLoyaltyAccount = async () => {
     if (!currentAccount?.address) {
@@ -188,9 +192,9 @@ export default function App() {
             // Reload user data to reflect new account
             await loadUserData(currentAccount.address!);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Transaction failed:', error);
-            showNotification('Failed to create account', 'error');
+            showNotification(`Failed to create account: ${error.message}`, 'error');
           },
         }
       );
@@ -260,9 +264,9 @@ export default function App() {
             // Reload user data to reflect new balance and transactions
             await loadUserData(currentAccount.address!);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Transaction failed:', error);
-            showNotification('Failed to issue points: ' + error.message, 'error');
+            showNotification(`Failed to issue points: ${error.message}`, 'error');
           },
         }
       );
@@ -296,9 +300,9 @@ export default function App() {
             // Reload user data
             await loadUserData(currentAccount.address!);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Merchant registration failed:', error);
-            showNotification('Failed to register as merchant', 'error');
+            showNotification(`Failed to register as merchant: ${error.message}`, 'error');
           },
         }
       );
@@ -360,7 +364,7 @@ export default function App() {
               await loadUserData(currentAccount.address!);
               await loadBlockchainData();
             },
-            onError: (error: any) => {
+            onError: (error: Error) => {
               console.error('Redemption failed:', error);
               let errorMessage = 'Redemption failed';
               if (error.message?.includes('1001')) {
@@ -369,8 +373,8 @@ export default function App() {
                 errorMessage = 'Reward not found or inactive';
               } else if (error.message?.includes('1006')) {
                 errorMessage = 'Reward is out of stock';
-              } else if (error.message) {
-                errorMessage += ': ' + error.message;
+              } else {
+                errorMessage += `: ${error.message}`;
               }
               showNotification(errorMessage, 'error');
             },
@@ -451,7 +455,7 @@ export default function App() {
                 await new Promise(settleResolve => setTimeout(settleResolve, 1000));
                 resolve(true);
               },
-              onError: (error: any) => {
+              onError: (error: Error) => {
                 console.error(`Failed to create ${reward.name}:`, error);
                 reject(error);
               },
@@ -566,7 +570,7 @@ export default function App() {
               setLoading(false);
             }, 5000);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Update failed:', error);
             showNotification('Failed to update reward: ' + error.message, 'error');
           },
@@ -627,7 +631,7 @@ export default function App() {
               setLoading(false);
             }, 5000);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Deletion failed:', error);
             showNotification('Failed to delete reward: ' + error.message, 'error');
           },
@@ -692,7 +696,7 @@ export default function App() {
               setLoading(false);
             }, 5000);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Creation failed:', error);
             showNotification('Failed to create reward: ' + error.message, 'error');
           },
@@ -760,7 +764,7 @@ export default function App() {
               setLoading(false);
             }, 5000);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Supply update failed:', error);
             showNotification('Failed to update supply: ' + error.message, 'error');
           },

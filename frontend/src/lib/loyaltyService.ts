@@ -33,8 +33,8 @@ export class LoyaltyService {
 
       const loyaltyAccount = objects.data[0];
       if (loyaltyAccount.data?.content && 'fields' in loyaltyAccount.data.content) {
-        const fields = loyaltyAccount.data.content.fields as any;
-        return parseInt(fields.points_balance) || 0;
+        const fields = loyaltyAccount.data.content.fields as Record<string, unknown>;
+        return parseInt(String(fields.points_balance)) || 0;
       }
 
       return 0;
@@ -90,7 +90,7 @@ export class LoyaltyService {
 
       if (platformObject.data?.content && 'fields' in platformObject.data.content) {
         // Note: Merchants would need to be properly parsed from the platform object
-        // const fields = platformObject.data.content.fields as any;
+        // const fields = platformObject.data.content.fields as Record<string, unknown>;
         return [];
       }
 
@@ -137,22 +137,22 @@ export class LoyaltyService {
                 });
 
                 if (rewardObj.data?.content && 'fields' in rewardObj.data.content) {
-                  const fields = rewardObj.data.content.fields as any;
+                  const fields = rewardObj.data.content.fields as Record<string, unknown>;
                   console.log('Raw reward fields:', fields);
                   
-                  const rewardName = fields.name || 'Unknown Reward';
+                  const rewardName = String(fields.name || 'Unknown Reward');
                   
                   // Cache the reward name for future lookups
                   this.rewardNameCache.set(change.objectId, rewardName);
                   
                   rewards.push({
                     id: change.objectId,
-                    merchantId: fields.merchant || 'unknown',
+                    merchantId: String(fields.merchant || 'unknown'),
                     name: rewardName,
-                    description: fields.description || 'No description',
-                    pointsCost: parseInt(fields.points_cost) || 0,
-                    imageUrl: fields.image_url || '🎁',
-                    remaining: parseInt(fields.remaining_supply) || 0,
+                    description: String(fields.description || 'No description'),
+                    pointsCost: parseInt(String(fields.points_cost)) || 0,
+                    imageUrl: String(fields.image_url || '🎁'),
+                    remaining: parseInt(String(fields.remaining_supply)) || 0,
                   });
                 }
               } catch (objError) {
@@ -238,7 +238,7 @@ export class LoyaltyService {
             sender: tx.transaction?.data?.sender,
             gasOwner: tx.effects?.gasObject?.owner,
             timestamp: tx.timestampMs,
-            functions: this.extractMoveCallFunctions(tx)
+            functions: this.extractMoveCallFunctions(tx as unknown as Record<string, unknown>)
           });
         } else {
           console.log('❌ Transaction does not involve user:', tx.digest, {
@@ -255,10 +255,10 @@ export class LoyaltyService {
 
       // Process transactions with async reward name extraction
       const mappedTransactions = await Promise.all(loyaltyTransactions.map(async (tx) => {
-        const txType = this.determineTransactionType(tx);
-        const amount = this.extractTransactionAmount(tx, txType);
-        const rewardTemplateId = txType === 'redeemed' ? this.extractRewardTemplateId(tx) : undefined;
-        const rewardName = txType === 'redeemed' ? await this.extractRewardName(tx) : undefined;
+        const txType = this.determineTransactionType(tx as unknown as Record<string, unknown>);
+        const amount = this.extractTransactionAmount(tx as unknown as Record<string, unknown>, txType);
+        const rewardTemplateId = txType === 'redeemed' ? this.extractRewardTemplateId(tx as unknown as Record<string, unknown>) : undefined;
+        const rewardName = txType === 'redeemed' ? await this.extractRewardName(tx as unknown as Record<string, unknown>) : undefined;
         
         console.log('🔄 Processing transaction:', {
           digest: tx.digest,
@@ -306,13 +306,14 @@ export class LoyaltyService {
     }
   }
 
-  private extractMoveCallFunctions(tx: any): string[] {
+  private extractMoveCallFunctions(tx: Record<string, unknown>): string[] {
     const functions: string[] = [];
     try {
-      if (tx.transaction?.data?.transaction?.transactions) {
-        for (const transaction of tx.transaction.data.transaction.transactions) {
-          if (transaction.MoveCall?.function) {
-            functions.push(transaction.MoveCall.function);
+      const transaction = tx.transaction as any;
+      if (transaction?.data?.transaction?.transactions) {
+        for (const trans of transaction.data.transaction.transactions) {
+          if (trans.MoveCall?.function) {
+            functions.push(trans.MoveCall.function);
           }
         }
       }
@@ -323,14 +324,15 @@ export class LoyaltyService {
   }
 
   // Extract reward template ID from transaction (non-async, faster)
-  private extractRewardTemplateId(tx: any): string | undefined {
+  private extractRewardTemplateId(tx: Record<string, unknown>): string | undefined {
     try {
       // Try to find the reward template ID from the transaction arguments
-      if (tx.transaction?.data?.transaction?.transactions) {
-        for (const transaction of tx.transaction.data.transaction.transactions) {
-          if (transaction.MoveCall?.function === 'redeem_reward') {
+      const transaction = tx.transaction as any;
+      if (transaction?.data?.transaction?.transactions) {
+        for (const trans of transaction.data.transaction.transactions) {
+          if (trans.MoveCall?.function === 'redeem_reward') {
             // Look for reward template object ID in arguments
-            const args = transaction.MoveCall.arguments;
+            const args = trans.MoveCall.arguments;
             if (args && args.length >= 3) {
               // The third argument should be the reward template object
               const rewardTemplateArg = args[2];
@@ -349,7 +351,7 @@ export class LoyaltyService {
     }
   }
 
-  private async extractRewardName(tx: any): Promise<string> {
+  private async extractRewardName(tx: Record<string, unknown>): Promise<string> {
     try {
       // First try to get the reward template ID and use cache
       const rewardTemplateId = this.extractRewardTemplateId(tx);
@@ -361,13 +363,14 @@ export class LoyaltyService {
       }
       
       // Fallback to transaction events
-      if (tx.events) {
-        for (const event of tx.events) {
+      const events = tx.events as any[];
+      if (events) {
+        for (const event of events) {
           if (event.type?.includes('PointsRedeemed')) {
             // NEW: Extract reward name directly from the enhanced event
             if (event.parsedJson?.reward_name) {
               console.log('✅ Found reward_name in PointsRedeemed event:', event.parsedJson.reward_name);
-              return event.parsedJson.reward_name;
+              return String(event.parsedJson.reward_name);
             }
             // If event has reward template ID, use that
             if (event.parsedJson?.reward_template_id) {
@@ -424,12 +427,12 @@ export class LoyaltyService {
       });
       
       if (rewardObject.data?.content && 'fields' in rewardObject.data.content) {
-        const fields = rewardObject.data.content.fields as any;
+        const fields = rewardObject.data.content.fields as Record<string, unknown>;
         
         // Check if it's a RewardTemplate with a name field
         if (fields.name) {
           console.log('✅ Successfully fetched reward name:', fields.name, 'for ID:', objectId);
-          return fields.name;
+          return String(fields.name);
         }
       }
       
@@ -440,7 +443,7 @@ export class LoyaltyService {
     }
   }
 
-  private determineTransactionType(tx: any): 'earned' | 'redeemed' | 'other' {
+  private determineTransactionType(tx: Record<string, unknown>): 'earned' | 'redeemed' | 'other' {
     try {
       // First try to extract function names directly
       const functions = this.extractMoveCallFunctions(tx);
@@ -468,11 +471,12 @@ export class LoyaltyService {
   }
 
   // Extract transaction amount from transaction data
-  private extractTransactionAmount(tx: any, type: 'earned' | 'redeemed' | 'other'): number {
+  private extractTransactionAmount(tx: Record<string, unknown>, type: 'earned' | 'redeemed' | 'other'): number {
     try {
       // Look for amount in transaction events first (most reliable)
-      if (tx.events) {
-        for (const event of tx.events) {
+      const events = tx.events as any[];
+      if (events) {
+        for (const event of events) {
           if (event.type?.includes('PointsIssued') && type === 'earned') {
             if (event.parsedJson?.amount) {
               return parseInt(event.parsedJson.amount);
@@ -486,14 +490,15 @@ export class LoyaltyService {
       }
 
       // Fallback: Look for amount in transaction input
-      if (tx.transaction?.data?.transaction?.transactions) {
-        for (const transaction of tx.transaction.data.transaction.transactions) {
-          if (transaction.MoveCall?.function === 'issue_points' && type === 'earned') {
+      const transaction = tx.transaction as any;
+      if (transaction?.data?.transaction?.transactions) {
+        for (const trans of transaction.data.transaction.transactions) {
+          if (trans.MoveCall?.function === 'issue_points' && type === 'earned') {
             // For issue_points, the amount is usually the 4th argument (after platform, merchant_cap, account)
-            if (transaction.MoveCall.arguments && transaction.MoveCall.arguments.length >= 4) {
-              const amountArg = transaction.MoveCall.arguments[3];
+            if (trans.MoveCall.arguments && trans.MoveCall.arguments.length >= 4) {
+              const amountArg = trans.MoveCall.arguments[3];
               if (amountArg?.Input !== undefined && typeof amountArg.Input === 'number') {
-                const value = tx.transaction.data.transaction.inputs[amountArg.Input];
+                const value = transaction.data.transaction.inputs[amountArg.Input];
                 if (value?.type === 'pure' && value.valueType === 'u64') {
                   const amount = parseInt(value.value);
                   if (amount > 0) {
