@@ -8,7 +8,7 @@ import { HomeTab } from './components/tabs/HomeTab';
 import { RewardsTab } from './components/tabs/RewardsTab';
 import { MerchantTab } from './components/tabs/MerchantTab';
 import { ProfileTab } from './components/tabs/ProfileTab';
-import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as NotificationType, SuiTransactionBlockResponse } from './types';
+import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as NotificationType } from './types';
 import { loyaltyService } from './lib/loyaltyService';
 import { PACKAGE_ID } from './config';
 
@@ -71,24 +71,6 @@ export default function App() {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 6000);
   }, []);
-
-  // Load user data when wallet connects/disconnects
-  useEffect(() => {
-    const handleWalletChange = async () => {
-      if (currentAccount?.address) {
-        await loadUserData(currentAccount.address);
-        showNotification('Wallet connected successfully!', 'success');
-      } else {
-        setPointsBalance(0);
-        setLoyaltyAccount(null);
-        setTransactions([]);
-        setIsMerchant(false);
-        setHasCreatedRewards(false);
-      }
-    };
-    
-    handleWalletChange();
-  }, [currentAccount, loadUserData, showNotification]);
 
   const loadUserData = useCallback(async (userAddress: string) => {
     try {
@@ -171,6 +153,24 @@ export default function App() {
     }
   }, [rewards, showNotification, loyaltyAccount]);
 
+  // Load user data when wallet connects/disconnects
+  useEffect(() => {
+    const handleWalletChange = async () => {
+      if (currentAccount?.address) {
+        await loadUserData(currentAccount.address);
+        showNotification('Wallet connected successfully!', 'success');
+      } else {
+        setPointsBalance(0);
+        setLoyaltyAccount(null);
+        setTransactions([]);
+        setIsMerchant(false);
+        setHasCreatedRewards(false);
+      }
+    };
+    
+    handleWalletChange();
+  }, [currentAccount, loadUserData, showNotification]);
+
   const createLoyaltyAccount = async () => {
     if (!currentAccount?.address) {
       showNotification('Please connect your wallet first', 'error');
@@ -184,10 +184,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (_result: SuiTransactionBlockResponse) => {
+          onSuccess: async (_result: any) => {
             showNotification('Loyalty account created successfully!', 'success');
             // Reload user data to reflect new account
             await loadUserData(currentAccount.address!);
@@ -254,10 +254,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (_result: SuiTransactionBlockResponse) => {
+          onSuccess: async (_result: any) => {
             showNotification(`${amount} points issued successfully! 🎉`, 'success');
             // Small delay for blockchain settlement
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -291,10 +291,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (_result: SuiTransactionBlockResponse) => {
+          onSuccess: async (_result: any) => {
             showNotification('Successfully registered as merchant!', 'success');
             setIsMerchant(true);
             // Reload user data
@@ -353,10 +353,10 @@ export default function App() {
         
         signAndExecuteTransaction(
           {
-            transactionBlock: tx,
+            transactionBlock: tx as any,
           },
           {
-            onSuccess: async (_result: SuiTransactionBlockResponse) => {
+            onSuccess: async (_result: any) => {
               showNotification(`Successfully redeemed: ${reward.name}! 🎉`, 'success');
               // Small delay for blockchain settlement
               await new Promise(resolve => setTimeout(resolve, 2000));
@@ -446,10 +446,10 @@ export default function App() {
         await new Promise((resolve, reject) => {
           signAndExecuteTransaction(
             {
-              transactionBlock: tx,
+              transactionBlock: tx as any,
             },
             {
-              onSuccess: async (_result: SuiTransactionBlockResponse) => {
+              onSuccess: async (_result: any) => {
                 console.log(`Created reward: ${reward.name}`);
                 // Small delay to let blockchain settle
                 await new Promise(settleResolve => setTimeout(settleResolve, 1000));
@@ -555,10 +555,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (_result: SuiTransactionBlockResponse) => {
+          onSuccess: async (_result: any) => {
             setLoading(true);
             showNotification(`Reward ${updateType} updated successfully! 🎉`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
@@ -616,10 +616,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (_result: SuiTransactionBlockResponse) => {
+          onSuccess: async (_result: any) => {
             setLoading(true);
             showNotification('Reward deleted successfully! 🗑️', 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
@@ -681,10 +681,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (_result: SuiTransactionBlockResponse) => {
+          onSuccess: async (_result: any) => {
             setLoading(true);
             showNotification(`Reward "${name}" created successfully! 🎉`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
@@ -749,10 +749,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx,
+          transactionBlock: tx as any,
         },
         {
-          onSuccess: async (_result: SuiTransactionBlockResponse) => {
+          onSuccess: async (_result: any) => {
             setLoading(true);
             showNotification(`Supply updated to ${newSupply} items! 📦`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement

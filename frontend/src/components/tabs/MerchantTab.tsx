@@ -37,12 +37,6 @@ export const MerchantTab: FC<MerchantTabProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'rewards'>('overview');
   const [loadingRewards, setLoadingRewards] = useState(false);
 
-  useEffect(() => {
-    if (isMerchant && userAddress) {
-      loadMerchantRewards();
-    }
-  }, [isMerchant, userAddress, hasCreatedRewards, loadMerchantRewards]);
-
   const loadMerchantRewards = useCallback(async () => {
     if (!userAddress) return;
     
@@ -57,6 +51,12 @@ export const MerchantTab: FC<MerchantTabProps> = ({
       setLoadingRewards(false);
     }
   }, [userAddress]);
+
+  useEffect(() => {
+    if (isMerchant && userAddress) {
+      loadMerchantRewards();
+    }
+  }, [isMerchant, userAddress, hasCreatedRewards, loadMerchantRewards]);
 
   // Enhanced handlers that refresh local data
   const handleUpdateReward = async (rewardId: string, updates: Partial<Reward>) => {
