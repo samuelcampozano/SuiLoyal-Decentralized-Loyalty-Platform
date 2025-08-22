@@ -96,7 +96,7 @@ export const Navigation: FC<NavigationProps> = ({
             {/* Account Section */}
             {currentAccount ? (
               <div className="flex items-center space-x-3">
-                <div className="hidden sm:flex items-center space-x-2 glass-card px-3 py-2">
+                <div className="hidden sm:flex items-center space-x-2 glass-card px-4 py-2 hover-glow">
                   <div className="w-8 h-8 bg-gradient-to-r from-sui-500 to-brand-500 rounded-full flex items-center justify-center">
                     <span className="text-xs font-bold text-white">
                       {currentAccount.address.slice(2, 4).toUpperCase()}
