@@ -125,6 +125,8 @@ export default {
         'shimmer': 'shimmer 2s linear infinite',
         'spin-slow': 'spin 3s linear infinite',
         'wiggle': 'wiggle 1s ease-in-out infinite',
+        'scale-pulse': 'scalePulse 2s ease-in-out infinite',
+        'float-gentle': 'floatGentle 3s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -174,6 +176,14 @@ export default {
         wiggle: {
           '0%, 100%': { transform: 'rotate(-3deg)' },
           '50%': { transform: 'rotate(3deg)' },
+        },
+        scalePulse: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.05)' },
+        },
+        floatGentle: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-8px)' },
         },
       },
       backdropBlur: {

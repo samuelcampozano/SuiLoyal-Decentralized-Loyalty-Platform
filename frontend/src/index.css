@@ -119,6 +119,50 @@
            animate-shimmer;
     content: '';
   }
+
+  /* Enhanced status badges */
+  .status-warning {
+    @apply bg-warning-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-card;
+  }
+  
+  .status-error {
+    @apply bg-error-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-card;
+  }
+  
+  .status-success {
+    @apply bg-success-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-card;
+  }
+
+  /* Enhanced reward card styles */
+  .reward-card {
+    @apply glass-card p-6 transition-all duration-300 hover:shadow-card-hover transform hover:-translate-y-1;
+  }
+  
+  .reward-card-premium {
+    @apply reward-card relative overflow-hidden;
+  }
+  
+  .reward-card-premium::before {
+    @apply absolute inset-0 bg-gradient-to-br from-brand-500/5 via-transparent to-sui-500/5 opacity-0 transition-opacity duration-300;
+    content: '';
+  }
+  
+  .reward-card-premium:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Micro-interaction effects */
+  .bounce-gentle {
+    animation: bounceGentle 0.6s ease-out;
+  }
+  
+  .scale-pulse {
+    animation: scalePulse 2s ease-in-out infinite;
+  }
+  
+  .float-gentle {
+    animation: floatGentle 3s ease-in-out infinite;
+  }
 }
 
 @layer utilities {
