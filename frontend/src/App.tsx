@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useCurrentAccount, useSignAndExecuteTransactionBlock } from '@mysten/dapp-kit';
 import { Navigation } from './components/Navigation';
 import { Notification } from './components/Notification';
@@ -8,7 +8,7 @@ import { HomeTab } from './components/tabs/HomeTab';
 import { RewardsTab } from './components/tabs/RewardsTab';
 import { MerchantTab } from './components/tabs/MerchantTab';
 import { ProfileTab } from './components/tabs/ProfileTab';
-import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as NotificationType } from './types';
+import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as NotificationType, SuiTransactionBlockResponse } from './types';
 import { loyaltyService } from './lib/loyaltyService';
 import { PACKAGE_ID } from './config';
 
@@ -67,26 +67,30 @@ export default function App() {
     loadBlockchainData();
   }, []);
 
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 6000);
-  };
+  }, []);
 
   // Load user data when wallet connects/disconnects
   useEffect(() => {
-    if (currentAccount?.address) {
-      loadUserData(currentAccount.address);
-      showNotification('Wallet connected successfully!', 'success');
-    } else {
-      setPointsBalance(0);
-      setLoyaltyAccount(null);
-      setTransactions([]);
-      setIsMerchant(false);
-      setHasCreatedRewards(false);
-    }
-  }, [currentAccount]);
+    const handleWalletChange = async () => {
+      if (currentAccount?.address) {
+        await loadUserData(currentAccount.address);
+        showNotification('Wallet connected successfully!', 'success');
+      } else {
+        setPointsBalance(0);
+        setLoyaltyAccount(null);
+        setTransactions([]);
+        setIsMerchant(false);
+        setHasCreatedRewards(false);
+      }
+    };
+    
+    handleWalletChange();
+  }, [currentAccount, loadUserData, showNotification]);
 
-  const loadUserData = async (userAddress: string) => {
+  const loadUserData = useCallback(async (userAddress: string) => {
     try {
       setLoading(true);
       
@@ -165,7 +169,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [rewards, showNotification, loyaltyAccount]);
 
   const createLoyaltyAccount = async () => {
     if (!currentAccount?.address) {
@@ -180,17 +184,17 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx as any,
+          transactionBlock: tx,
         },
         {
-          onSuccess: async (_result: any) => {
+          onSuccess: async (_result: SuiTransactionBlockResponse) => {
             showNotification('Loyalty account created successfully!', 'success');
             // Reload user data to reflect new account
             await loadUserData(currentAccount.address!);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Transaction failed:', error);
-            showNotification('Failed to create account', 'error');
+            showNotification(`Failed to create account: ${error.message}`, 'error');
           },
         }
       );
@@ -250,19 +254,19 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx as any,
+          transactionBlock: tx,
         },
         {
-          onSuccess: async (_result: any) => {
+          onSuccess: async (_result: SuiTransactionBlockResponse) => {
             showNotification(`${amount} points issued successfully! 🎉`, 'success');
             // Small delay for blockchain settlement
             await new Promise(resolve => setTimeout(resolve, 2000));
             // Reload user data to reflect new balance and transactions
             await loadUserData(currentAccount.address!);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Transaction failed:', error);
-            showNotification('Failed to issue points: ' + error.message, 'error');
+            showNotification(`Failed to issue points: ${error.message}`, 'error');
           },
         }
       );
@@ -287,18 +291,18 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx as any,
+          transactionBlock: tx,
         },
         {
-          onSuccess: async (_result: any) => {
+          onSuccess: async (_result: SuiTransactionBlockResponse) => {
             showNotification('Successfully registered as merchant!', 'success');
             setIsMerchant(true);
             // Reload user data
             await loadUserData(currentAccount.address!);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Merchant registration failed:', error);
-            showNotification('Failed to register as merchant', 'error');
+            showNotification(`Failed to register as merchant: ${error.message}`, 'error');
           },
         }
       );
@@ -349,10 +353,10 @@ export default function App() {
         
         signAndExecuteTransaction(
           {
-            transactionBlock: tx as any,
+            transactionBlock: tx,
           },
           {
-            onSuccess: async (_result: any) => {
+            onSuccess: async (_result: SuiTransactionBlockResponse) => {
               showNotification(`Successfully redeemed: ${reward.name}! 🎉`, 'success');
               // Small delay for blockchain settlement
               await new Promise(resolve => setTimeout(resolve, 2000));
@@ -360,7 +364,7 @@ export default function App() {
               await loadUserData(currentAccount.address!);
               await loadBlockchainData();
             },
-            onError: (error: any) => {
+            onError: (error: Error) => {
               console.error('Redemption failed:', error);
               let errorMessage = 'Redemption failed';
               if (error.message?.includes('1001')) {
@@ -369,8 +373,8 @@ export default function App() {
                 errorMessage = 'Reward not found or inactive';
               } else if (error.message?.includes('1006')) {
                 errorMessage = 'Reward is out of stock';
-              } else if (error.message) {
-                errorMessage += ': ' + error.message;
+              } else {
+                errorMessage += `: ${error.message}`;
               }
               showNotification(errorMessage, 'error');
             },
@@ -442,16 +446,16 @@ export default function App() {
         await new Promise((resolve, reject) => {
           signAndExecuteTransaction(
             {
-              transactionBlock: tx as any,
+              transactionBlock: tx,
             },
             {
-              onSuccess: async (_result: any) => {
+              onSuccess: async (_result: SuiTransactionBlockResponse) => {
                 console.log(`Created reward: ${reward.name}`);
                 // Small delay to let blockchain settle
                 await new Promise(settleResolve => setTimeout(settleResolve, 1000));
                 resolve(true);
               },
-              onError: (error: any) => {
+              onError: (error: Error) => {
                 console.error(`Failed to create ${reward.name}:`, error);
                 reject(error);
               },
@@ -551,10 +555,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx as any,
+          transactionBlock: tx,
         },
         {
-          onSuccess: async (_result: any) => {
+          onSuccess: async (_result: SuiTransactionBlockResponse) => {
             setLoading(true);
             showNotification(`Reward ${updateType} updated successfully! 🎉`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
@@ -566,7 +570,7 @@ export default function App() {
               setLoading(false);
             }, 5000);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Update failed:', error);
             showNotification('Failed to update reward: ' + error.message, 'error');
           },
@@ -612,10 +616,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx as any,
+          transactionBlock: tx,
         },
         {
-          onSuccess: async (_result: any) => {
+          onSuccess: async (_result: SuiTransactionBlockResponse) => {
             setLoading(true);
             showNotification('Reward deleted successfully! 🗑️', 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
@@ -627,7 +631,7 @@ export default function App() {
               setLoading(false);
             }, 5000);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Deletion failed:', error);
             showNotification('Failed to delete reward: ' + error.message, 'error');
           },
@@ -677,10 +681,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx as any,
+          transactionBlock: tx,
         },
         {
-          onSuccess: async (_result: any) => {
+          onSuccess: async (_result: SuiTransactionBlockResponse) => {
             setLoading(true);
             showNotification(`Reward "${name}" created successfully! 🎉`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
@@ -692,7 +696,7 @@ export default function App() {
               setLoading(false);
             }, 5000);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Creation failed:', error);
             showNotification('Failed to create reward: ' + error.message, 'error');
           },
@@ -745,10 +749,10 @@ export default function App() {
       
       signAndExecuteTransaction(
         {
-          transactionBlock: tx as any,
+          transactionBlock: tx,
         },
         {
-          onSuccess: async (_result: any) => {
+          onSuccess: async (_result: SuiTransactionBlockResponse) => {
             setLoading(true);
             showNotification(`Supply updated to ${newSupply} items! 📦`, 'success');
             // Reload blockchain data to reflect changes - wait longer for settlement
@@ -760,7 +764,7 @@ export default function App() {
               setLoading(false);
             }, 5000);
           },
-          onError: (error: any) => {
+          onError: (error: Error) => {
             console.error('Supply update failed:', error);
             showNotification('Failed to update supply: ' + error.message, 'error');
           },

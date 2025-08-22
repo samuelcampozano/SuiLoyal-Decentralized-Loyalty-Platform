@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, useCallback } from 'react';
 import { Merchant, Reward } from '../../types';
 import { MerchantRewardManager } from '../MerchantRewardManager';
 
@@ -41,9 +41,9 @@ export const MerchantTab: FC<MerchantTabProps> = ({
     if (isMerchant && userAddress) {
       loadMerchantRewards();
     }
-  }, [isMerchant, userAddress, hasCreatedRewards]);
+  }, [isMerchant, userAddress, hasCreatedRewards, loadMerchantRewards]);
 
-  const loadMerchantRewards = async () => {
+  const loadMerchantRewards = useCallback(async () => {
     if (!userAddress) return;
     
     setLoadingRewards(true);
@@ -56,7 +56,7 @@ export const MerchantTab: FC<MerchantTabProps> = ({
     } finally {
       setLoadingRewards(false);
     }
-  };
+  }, [userAddress]);
 
   // Enhanced handlers that refresh local data
   const handleUpdateReward = async (rewardId: string, updates: Partial<Reward>) => {

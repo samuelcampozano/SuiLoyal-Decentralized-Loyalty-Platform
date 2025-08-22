@@ -34,3 +34,14 @@ export interface Notification {
   message: string;
   type: 'success' | 'error' | 'info';
 }
+
+export interface TransactionResult {
+  digest?: string;
+  effects?: Record<string, unknown>;
+}
+
+export interface SuiTransactionBlockResponse {
+  digest: string;
+  effects?: Record<string, unknown>;
+  events?: Record<string, unknown>[];
+}

@@ -33,7 +33,7 @@ export class LoyaltyService {
 
       const loyaltyAccount = objects.data[0];
       if (loyaltyAccount.data?.content && 'fields' in loyaltyAccount.data.content) {
-        const fields = loyaltyAccount.data.content.fields as any;
+        const fields = loyaltyAccount.data.content.fields as Record<string, unknown>;
         return parseInt(fields.points_balance) || 0;
       }
 
@@ -90,7 +90,7 @@ export class LoyaltyService {
 
       if (platformObject.data?.content && 'fields' in platformObject.data.content) {
         // Note: Merchants would need to be properly parsed from the platform object
-        // const fields = platformObject.data.content.fields as any;
+        // const fields = platformObject.data.content.fields as Record<string, unknown>;
         return [];
       }
 
@@ -137,7 +137,7 @@ export class LoyaltyService {
                 });
 
                 if (rewardObj.data?.content && 'fields' in rewardObj.data.content) {
-                  const fields = rewardObj.data.content.fields as any;
+                  const fields = rewardObj.data.content.fields as Record<string, unknown>;
                   console.log('Raw reward fields:', fields);
                   
                   const rewardName = fields.name || 'Unknown Reward';
@@ -306,7 +306,7 @@ export class LoyaltyService {
     }
   }
 
-  private extractMoveCallFunctions(tx: any): string[] {
+  private extractMoveCallFunctions(tx: Record<string, unknown>): string[] {
     const functions: string[] = [];
     try {
       if (tx.transaction?.data?.transaction?.transactions) {
@@ -323,7 +323,7 @@ export class LoyaltyService {
   }
 
   // Extract reward template ID from transaction (non-async, faster)
-  private extractRewardTemplateId(tx: any): string | undefined {
+  private extractRewardTemplateId(tx: Record<string, unknown>): string | undefined {
     try {
       // Try to find the reward template ID from the transaction arguments
       if (tx.transaction?.data?.transaction?.transactions) {
@@ -349,7 +349,7 @@ export class LoyaltyService {
     }
   }
 
-  private async extractRewardName(tx: any): Promise<string> {
+  private async extractRewardName(tx: Record<string, unknown>): Promise<string> {
     try {
       // First try to get the reward template ID and use cache
       const rewardTemplateId = this.extractRewardTemplateId(tx);
@@ -424,7 +424,7 @@ export class LoyaltyService {
       });
       
       if (rewardObject.data?.content && 'fields' in rewardObject.data.content) {
-        const fields = rewardObject.data.content.fields as any;
+        const fields = rewardObject.data.content.fields as Record<string, unknown>;
         
         // Check if it's a RewardTemplate with a name field
         if (fields.name) {
@@ -440,7 +440,7 @@ export class LoyaltyService {
     }
   }
 
-  private determineTransactionType(tx: any): 'earned' | 'redeemed' | 'other' {
+  private determineTransactionType(tx: Record<string, unknown>): 'earned' | 'redeemed' | 'other' {
     try {
       // First try to extract function names directly
       const functions = this.extractMoveCallFunctions(tx);
@@ -468,7 +468,7 @@ export class LoyaltyService {
   }
 
   // Extract transaction amount from transaction data
-  private extractTransactionAmount(tx: any, type: 'earned' | 'redeemed' | 'other'): number {
+  private extractTransactionAmount(tx: Record<string, unknown>, type: 'earned' | 'redeemed' | 'other'): number {
     try {
       // Look for amount in transaction events first (most reliable)
       if (tx.events) {
