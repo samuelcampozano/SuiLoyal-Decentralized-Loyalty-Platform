@@ -45,14 +45,14 @@ export const Navigation: FC<NavigationProps> = ({
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-2 animate-entrance-delayed">
+          <div className="hidden lg:flex items-center space-x-2 animate-entrance-delayed relative">
             {navItems.map((item, index) => (
               <button
                 key={item.id}
                 onClick={() => setCurrentTab(item.id)}
                 className={`
-                  relative px-4 py-2.5 rounded-xl font-medium transition-all duration-200 
-                  flex items-center space-x-2 group
+                  relative px-4 py-2.5 rounded-xl font-medium transition-all duration-300 
+                  flex items-center space-x-2 group z-10
                   ${currentTab === item.id 
                     ? 'bg-white/20 text-dark-900 shadow-inner-glow font-semibold' 
                     : 'text-dark-700 hover:bg-white/10 hover:text-dark-900'
@@ -62,9 +62,16 @@ export const Navigation: FC<NavigationProps> = ({
               >
                 <span className="text-lg group-hover:animate-bounce-gentle">{item.icon}</span>
                 <span>{item.label}</span>
-                {currentTab === item.id && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-1 bg-gradient-to-r from-brand-500 to-sui-500 rounded-full animate-scale-in"></div>
-                )}
+                
+                {/* Enhanced active indicator */}
+                <div className={`
+                  absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-brand-500 to-sui-500 
+                  rounded-full transition-all duration-300 shadow-glow
+                  ${currentTab === item.id 
+                    ? 'opacity-100 scale-x-100 animate-pulse-slow' 
+                    : 'opacity-0 scale-x-0'
+                  }
+                `}></div>
               </button>
             ))}
           </div>
