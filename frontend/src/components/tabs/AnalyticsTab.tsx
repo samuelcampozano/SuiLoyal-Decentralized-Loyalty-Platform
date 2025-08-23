@@ -64,14 +64,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
                            analyticsData.totalMerchants > 0;
 
         if (hasRealData) {
+          console.log('✅ Using real blockchain data:', {
+            transactions: analyticsData.totalTransactions,
+            users: analyticsData.totalUsers,
+            merchants: analyticsData.totalMerchants,
+            revenue: analyticsData.revenue
+          });
           setAnalytics(analyticsData);
           setEngagement(engagementData);
           setRevenue(revenueData);
           setTimeSeriesData(timeData);
           setMerchantAnalytics(merchantData);
         } else {
-          // Use mock data for development/demo
-          console.log('Using mock data for analytics dashboard');
+          // Use static mock data for development/demo
+          console.log('📊 Using static demo data (no real blockchain activity detected)');
           setAnalytics(analyticsService.generateMockAnalyticsData());
           setEngagement(analyticsService.generateMockUserEngagement());
           setRevenue(analyticsService.generateMockRevenueBreakdown());
@@ -109,8 +115,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
           ]);
         }
       } catch (error) {
-        console.error('Error loading real analytics data, using mock data:', error);
-        // Fallback to mock data on error
+        console.error('❌ Error loading blockchain data, using static demo data:', error);
+        // Fallback to static mock data on error
         setAnalytics(analyticsService.generateMockAnalyticsData());
         setEngagement(analyticsService.generateMockUserEngagement());
         setRevenue(analyticsService.generateMockRevenueBreakdown());
