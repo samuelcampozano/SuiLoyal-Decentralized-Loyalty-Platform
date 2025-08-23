@@ -197,18 +197,38 @@ export class AnalyticsService {
 
   private async getAllTransactions(): Promise<Transaction[]> {
     try {
-      const events = await this.client.queryEvents({
-        query: {
-          MoveModule: {
-            package: this.packageId,
-            module: 'loyalty'
-          }
-        },
-        order: 'descending',
-        limit: 1000
-      });
+      // Try both module names to be compatible
+      let events;
+      try {
+        events = await this.client.queryEvents({
+          query: {
+            MoveModule: {
+              package: this.packageId,
+              module: 'loyalty_system'
+            }
+          },
+          order: 'descending',
+          limit: 1000
+        });
+      } catch {
+        events = await this.client.queryEvents({
+          query: {
+            MoveModule: {
+              package: this.packageId,
+              module: 'loyalty'
+            }
+          },
+          order: 'descending',
+          limit: 1000
+        });
+      }
 
-      return events.data.map(event => this.parseTransactionEvent(event)).filter((tx): tx is Transaction => tx !== null);
+      const transactions = events.data
+        .map(event => this.parseTransactionEvent(event))
+        .filter((tx): tx is Transaction => tx !== null);
+        
+      console.log(`Found ${transactions.length} real transactions from blockchain`);
+      return transactions;
     } catch (error) {
       console.error('Error fetching transactions:', error);
       return [];
@@ -217,14 +237,44 @@ export class AnalyticsService {
 
   private async getAllMerchants(): Promise<Merchant[]> {
     try {
-      const objects = await this.client.getOwnedObjects({
-        owner: this.packageId,
-        filter: {
-          StructType: `${this.packageId}::loyalty::MerchantCap`
-        }
+      // Since we can't query all objects easily, let's use a different approach
+      // We'll get recent events and extract merchant info from them
+      const events = await this.client.queryEvents({
+        query: {
+          MoveModule: {
+            package: this.packageId,
+            module: 'loyalty_system'
+          }
+        },
+        order: 'descending',
+        limit: 1000
       });
 
-      return objects.data.map(obj => this.parseMerchantObject(obj)).filter((merchant): merchant is Merchant => merchant !== null);
+      // Extract unique merchants from events
+      const merchantSet = new Set<string>();
+      const merchants: Merchant[] = [];
+      
+      events.data.forEach(event => {
+        if (event.parsedJson && typeof event.parsedJson === 'object') {
+          const parsedEvent = event.parsedJson as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+          if (parsedEvent.merchant) {
+            const merchantId = parsedEvent.merchant;
+            if (!merchantSet.has(merchantId)) {
+              merchantSet.add(merchantId);
+              merchants.push({
+                id: merchantId,
+                name: `Merchant ${merchantId.slice(0, 6)}...`,
+                description: 'Active merchant on platform',
+                totalIssued: 0,
+                isActive: true
+              });
+            }
+          }
+        }
+      });
+        
+      console.log(`Found ${merchants.length} real merchants from blockchain events`);
+      return merchants;
     } catch (error) {
       console.error('Error fetching merchants:', error);
       return [];
@@ -233,14 +283,33 @@ export class AnalyticsService {
 
   private async getActiveUsers(): Promise<number> {
     try {
-      const accounts = await this.client.getOwnedObjects({
-        owner: this.packageId,
-        filter: {
-          StructType: `${this.packageId}::loyalty::LoyaltyAccount`
+      // Count unique users from transaction events
+      const events = await this.client.queryEvents({
+        query: {
+          MoveModule: {
+            package: this.packageId,
+            module: 'loyalty_system'
+          }
+        },
+        order: 'descending',
+        limit: 1000
+      });
+
+      const userSet = new Set<string>();
+      events.data.forEach(event => {
+        if (event.parsedJson && typeof event.parsedJson === 'object') {
+          const parsedEvent = event.parsedJson as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+          if (parsedEvent.customer) {
+            userSet.add(parsedEvent.customer);
+          }
+          if (parsedEvent.user) {
+            userSet.add(parsedEvent.user);
+          }
         }
       });
 
-      return accounts.data.length;
+      console.log(`Found ${userSet.size} active users from blockchain events`);
+      return userSet.size;
     } catch (error) {
       console.error('Error counting active users:', error);
       return 0;
@@ -392,20 +461,6 @@ export class AnalyticsService {
     }
   }
 
-  private parseMerchantObject(obj: any): Merchant | null { // eslint-disable-line @typescript-eslint/no-explicit-any
-    try {
-      return {
-        id: obj.data.objectId,
-        name: obj.data.content?.fields?.name || 'Unknown Merchant',
-        description: obj.data.content?.fields?.description || '',
-        totalIssued: parseInt(obj.data.content?.fields?.total_issued || '0'),
-        isActive: true
-      };
-    } catch (error) {
-      console.error('Error parsing merchant object:', error);
-      return null;
-    }
-  }
 
   // ===== Enhanced Analytics Methods =====
 
@@ -537,12 +592,15 @@ export class AnalyticsService {
     const now = new Date();
     const daily: ChartData[] = [];
     
+    // Static mock data pattern - consistent values that don't change
+    const basePattern = [45, 52, 38, 61, 49, 67, 44, 58, 71, 43, 56, 39, 64, 48, 72, 41, 59, 46, 68, 51, 37, 63, 47, 69, 42, 55, 40, 66, 50, 73];
+    
     for (let i = 29; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       daily.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
-        value: Math.floor(Math.random() * 50) + 20,
+        value: basePattern[29 - i] || 50, // Use consistent pattern
         label: date.toISOString().split('T')[0]
       });
     }
