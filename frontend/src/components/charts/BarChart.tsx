@@ -19,34 +19,34 @@ const BarChart: React.FC<BarChartProps> = ({
   formatValue = (value) => value.toString()
 }) => {
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 shadow-xl">
-      <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
+    <div className="bg-white rounded-xl p-6 shadow-lg">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={height}>
         <RechartsBarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <XAxis 
             dataKey="date" 
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: '#ffffff80' }}
+            tick={{ fontSize: 12, fill: '#6b7280' }}
           />
           {showYAxis && (
             <YAxis 
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: '#ffffff80' }}
+              tick={{ fontSize: 12, fill: '#6b7280' }}
               tickFormatter={formatValue}
             />
           )}
           <Tooltip 
             contentStyle={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              background: 'white',
+              border: '1px solid #e5e7eb',
               borderRadius: '8px',
-              color: 'white'
+              color: '#111827',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
             }}
             formatter={(value: any) => [formatValue(value), title]}
-            labelStyle={{ color: '#ffffff80' }}
+            labelStyle={{ color: '#6b7280' }}
           />
           <Bar 
             dataKey="value" 

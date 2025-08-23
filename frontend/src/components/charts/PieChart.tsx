@@ -24,12 +24,12 @@ const PieChart: React.FC<PieChartProps> = ({
       const data = payload[0].payload;
       const total = data.value * 4; // Simple approximation for demo
       return (
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-3 shadow-xl">
-          <p className="text-white font-medium">{data.name}</p>
-          <p className="text-white/80">
+        <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-xl">
+          <p className="text-gray-900 font-medium">{data.name}</p>
+          <p className="text-gray-600">
             Value: {formatValue(data.value)}
           </p>
-          <p className="text-white/80">
+          <p className="text-gray-600">
             Percentage: {((data.value / total) * 100).toFixed(1)}%
           </p>
         </div>
@@ -44,8 +44,8 @@ const PieChart: React.FC<PieChartProps> = ({
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 shadow-xl">
-      <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
+    <div className="bg-white rounded-xl p-6 shadow-lg">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={height}>
         <RechartsPieChart>
           <Pie
@@ -57,7 +57,7 @@ const PieChart: React.FC<PieChartProps> = ({
             outerRadius={80}
             fill="#8884d8"
             dataKey="value"
-            stroke="rgba(255, 255, 255, 0.2)"
+            stroke="rgba(0, 0, 0, 0.1)"
             strokeWidth={1}
           >
             {data.map((entry, index) => (
@@ -73,10 +73,10 @@ const PieChart: React.FC<PieChartProps> = ({
             wrapperStyle={{
               paddingTop: '20px',
               fontSize: '12px',
-              color: '#ffffff80'
+              color: '#6b7280'
             }}
             iconType="circle"
-            formatter={(value) => <span style={{ color: '#ffffff' }}>{value}</span>}
+            formatter={(value) => <span style={{ color: '#374151' }}>{value}</span>}
           />
         </RechartsPieChart>
       </ResponsiveContainer>
