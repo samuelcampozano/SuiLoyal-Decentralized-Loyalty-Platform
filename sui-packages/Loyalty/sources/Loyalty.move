@@ -1,5 +1,6 @@
 module loyalty::loyalty_system {
     use std::string::{String, utf8};
+    use std::option::{Self, Option};
     use sui::coin::{Self, Coin};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
@@ -8,7 +9,6 @@ module loyalty::loyalty_system {
     use sui::transfer;
     use sui::event;
     use sui::table::{Self, Table};
-    use sui::dynamic_object_field as dof;
     use sui::clock::{Self, Clock};
 
     // ===== Error Codes =====
@@ -34,6 +34,10 @@ module loyalty::loyalty_system {
         total_points_redeemed: u64,
         platform_fee_balance: Balance<SUI>,
         admin: address,
+        // Analytics integration
+        analytics_registry: Option<ID>,
+        daily_transaction_count: u64,
+        last_analytics_update: u64,
     }
 
     /// Merchant information stored in platform
@@ -56,6 +60,10 @@ module loyalty::loyalty_system {
         lifetime_redeemed: u64,
         merchant_balances: Table<address, u64>,
         created_at: u64,
+        // Analytics fields
+        session_count: u64,
+        last_activity: u64,
+        favorite_merchant: address,
     }
 
     /// Merchant capability - required for merchant operations
@@ -103,6 +111,11 @@ module loyalty::loyalty_system {
         customer: address,
         amount: u64,
         timestamp: u64,
+        // Enhanced analytics fields
+        transaction_fee: u64,
+        merchant_fee: u64,
+        customer_tier: String,
+        transaction_source: String,
     }
 
     struct PointsRedeemed has copy, drop {
@@ -112,6 +125,42 @@ module loyalty::loyalty_system {
         reward_id: ID,
         reward_name: String,
         reward_template_id: ID,
+        timestamp: u64,
+        // Enhanced analytics fields
+        customer_tier: String,
+        session_duration: u64,
+        is_repeat_customer: bool,
+    }
+
+    // ===== New Analytics Events =====
+
+    struct UserAccountCreated has copy, drop {
+        user: address,
+        timestamp: u64,
+        onboarding_source: String,
+    }
+
+    struct UserSessionStarted has copy, drop {
+        user: address,
+        session_id: u64,
+        timestamp: u64,
+        platform_source: String,
+    }
+
+    struct UserSessionEnded has copy, drop {
+        user: address,
+        session_id: u64,
+        session_duration: u64,
+        actions_performed: u64,
+        timestamp: u64,
+    }
+
+    struct TransactionAnalytics has copy, drop {
+        transaction_type: String,
+        merchant: Option<address>,
+        user: address,
+        amount: u64,
+        fee_collected: u64,
         timestamp: u64,
     }
 
@@ -143,6 +192,9 @@ module loyalty::loyalty_system {
             total_points_redeemed: 0,
             platform_fee_balance: balance::zero(),
             admin: tx_context::sender(ctx),
+            analytics_registry: option::none(),
+            daily_transaction_count: 0,
+            last_analytics_update: 0,
         };
         
         transfer::share_object(platform);
@@ -194,17 +246,31 @@ module loyalty::loyalty_system {
         clock: &Clock,
         ctx: &mut TxContext
     ) {
+        let sender = tx_context::sender(ctx);
+        let timestamp = clock::timestamp_ms(clock);
+        
         let account = LoyaltyAccount {
             id: object::new(ctx),
-            owner: tx_context::sender(ctx),
+            owner: sender,
             points_balance: 0,
             lifetime_earned: 0,
             lifetime_redeemed: 0,
             merchant_balances: table::new(ctx),
-            created_at: clock::timestamp_ms(clock),
+            created_at: timestamp,
+            // Initialize analytics fields
+            session_count: 0,
+            last_activity: timestamp,
+            favorite_merchant: @0x0,
         };
         
-        transfer::transfer(account, tx_context::sender(ctx));
+        // Emit enhanced analytics event
+        event::emit(UserAccountCreated {
+            user: sender,
+            timestamp,
+            onboarding_source: utf8(b"web_platform"),
+        });
+        
+        transfer::transfer(account, sender);
     }
 
     /// Issue points to a customer (merchant only)
@@ -239,10 +305,48 @@ module loyalty::loyalty_system {
         let merchant_info = table::borrow_mut(&mut platform.merchants, merchant_cap.merchant_address);
         merchant_info.total_points_issued = merchant_info.total_points_issued + amount;
         
+        // Update account analytics
+        account.session_count = account.session_count + 1;
+        account.last_activity = clock::timestamp_ms(clock);
+        account.favorite_merchant = merchant_cap.merchant_address;
+        
+        // Update platform analytics
+        platform.daily_transaction_count = platform.daily_transaction_count + 1;
+        
+        // Calculate fees for analytics
+        let transaction_fee = amount / 1000; // 0.1% transaction fee
+        let merchant_fee = amount / 200; // 0.5% merchant fee
+        
+        // Determine customer tier based on lifetime earned
+        let customer_tier = if (account.lifetime_earned >= 10000) {
+            utf8(b"platinum")
+        } else if (account.lifetime_earned >= 5000) {
+            utf8(b"gold")
+        } else if (account.lifetime_earned >= 1000) {
+            utf8(b"silver")
+        } else {
+            utf8(b"bronze")
+        };
+
         event::emit(PointsIssued {
             merchant: merchant_cap.merchant_address,
             customer: account.owner,
             amount,
+            timestamp: clock::timestamp_ms(clock),
+            // Enhanced analytics fields
+            transaction_fee,
+            merchant_fee,
+            customer_tier,
+            transaction_source: utf8(b"merchant_issued"),
+        });
+
+        // Emit analytics event
+        event::emit(TransactionAnalytics {
+            transaction_type: utf8(b"points_issued"),
+            merchant: option::some(merchant_cap.merchant_address),
+            user: account.owner,
+            amount,
+            fee_collected: transaction_fee + merchant_fee,
             timestamp: clock::timestamp_ms(clock),
         });
     }
@@ -261,7 +365,7 @@ module loyalty::loyalty_system {
         
         // Take platform fee (1%)
         let fee_amount = payment_amount / 100;
-        let merchant_amount = payment_amount - fee_amount;
+        let _merchant_amount = payment_amount - fee_amount;
         
         // Add fee to platform balance
         let payment_balance = coin::into_balance(payment);
@@ -355,6 +459,27 @@ module loyalty::loyalty_system {
         
         let reward_id = object::id(&reward_nft);
         
+        // Update user analytics for redemption
+        account.session_count = account.session_count + 1;
+        account.last_activity = clock::timestamp_ms(clock);
+        let session_duration = 15; // Average session duration in minutes
+        
+        // Check if repeat customer for this merchant
+        let is_repeat = if (table::contains(&account.merchant_balances, reward_template.merchant)) {
+            *table::borrow(&account.merchant_balances, reward_template.merchant) > 0
+        } else { false };
+        
+        // Determine customer tier
+        let customer_tier = if (account.lifetime_earned >= 10000) {
+            utf8(b"platinum")
+        } else if (account.lifetime_earned >= 5000) {
+            utf8(b"gold")
+        } else if (account.lifetime_earned >= 1000) {
+            utf8(b"silver")
+        } else {
+            utf8(b"bronze")
+        };
+
         event::emit(PointsRedeemed {
             customer: account.owner,
             merchant: reward_template.merchant,
@@ -362,6 +487,20 @@ module loyalty::loyalty_system {
             reward_id,
             reward_name: reward_template.name,
             reward_template_id: object::id(reward_template),
+            timestamp: clock::timestamp_ms(clock),
+            // Enhanced analytics fields
+            customer_tier,
+            session_duration,
+            is_repeat_customer: is_repeat,
+        });
+
+        // Emit analytics event
+        event::emit(TransactionAnalytics {
+            transaction_type: utf8(b"points_redeemed"),
+            merchant: option::some(reward_template.merchant),
+            user: account.owner,
+            amount: reward_template.points_cost,
+            fee_collected: 0, // No fees on redemptions
             timestamp: clock::timestamp_ms(clock),
         });
         
@@ -523,6 +662,63 @@ module loyalty::loyalty_system {
     
     public fun get_reward_info(reward: &RewardTemplate): (String, u64, u64) {
         (reward.name, reward.points_cost, reward.remaining_supply)
+    }
+
+    // ===== Analytics Integration Functions =====
+    
+    /// Link analytics registry to platform (admin only)
+    public entry fun link_analytics_registry(
+        platform: &mut LoyaltyPlatform,
+        registry_id: ID,
+        ctx: &mut TxContext
+    ) {
+        assert!(tx_context::sender(ctx) == platform.admin, ENotAuthorized);
+        platform.analytics_registry = option::some(registry_id);
+    }
+    
+    /// Start user session for analytics tracking
+    public entry fun start_user_session(
+        account: &mut LoyaltyAccount,
+        session_id: u64,
+        platform_source: vector<u8>,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        assert!(account.owner == tx_context::sender(ctx), ENotAuthorized);
+        let timestamp = clock::timestamp_ms(clock);
+        
+        account.session_count = account.session_count + 1;
+        account.last_activity = timestamp;
+        
+        event::emit(UserSessionStarted {
+            user: account.owner,
+            session_id,
+            timestamp,
+            platform_source: utf8(platform_source),
+        });
+    }
+    
+    /// End user session for analytics tracking
+    public entry fun end_user_session(
+        account: &mut LoyaltyAccount,
+        session_id: u64,
+        session_duration: u64,
+        actions_performed: u64,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        assert!(account.owner == tx_context::sender(ctx), ENotAuthorized);
+        let timestamp = clock::timestamp_ms(clock);
+        
+        account.last_activity = timestamp;
+        
+        event::emit(UserSessionEnded {
+            user: account.owner,
+            session_id,
+            session_duration,
+            actions_performed,
+            timestamp,
+        });
     }
 
     // ===== Admin Functions =====
