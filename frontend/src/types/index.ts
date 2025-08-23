@@ -45,3 +45,55 @@ export interface SuiTransactionBlockResponse {
   effects?: Record<string, unknown>;
   events?: Record<string, unknown>[];
 }
+
+export interface AnalyticsData {
+  totalTransactions: number;
+  totalPoints: number;
+  totalUsers: number;
+  totalMerchants: number;
+  revenue: number;
+  growth: number;
+}
+
+export interface ChartData {
+  date: string;
+  value: number;
+  label?: string;
+}
+
+export interface MerchantAnalytics {
+  id: string;
+  name: string;
+  totalCustomers: number;
+  pointsIssued: number;
+  pointsRedeemed: number;
+  revenue: number;
+  growth: number;
+  transactions: ChartData[];
+  topRewards: Array<{
+    name: string;
+    redeemCount: number;
+    revenue: number;
+  }>;
+}
+
+export interface UserEngagementData {
+  activeUsers: number;
+  newUsers: number;
+  returningUsers: number;
+  averageSessionTime: number;
+  engagementRate: number;
+}
+
+export interface RevenueBreakdown {
+  merchantFees: number;
+  transactionFees: number;
+  premiumFeatures: number;
+  total: number;
+}
+
+export interface TimeSeriesData {
+  daily: ChartData[];
+  weekly: ChartData[];
+  monthly: ChartData[];
+}

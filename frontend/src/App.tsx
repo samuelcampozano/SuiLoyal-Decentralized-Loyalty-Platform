@@ -8,8 +8,10 @@ import { HomeTab } from './components/tabs/HomeTab';
 import { RewardsTab } from './components/tabs/RewardsTab';
 import { MerchantTab } from './components/tabs/MerchantTab';
 import { ProfileTab } from './components/tabs/ProfileTab';
+import { AnalyticsTab } from './components/tabs/AnalyticsTab';
 import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as NotificationType } from './types';
 import { loyaltyService } from './lib/loyaltyService';
+import { AnalyticsService } from './lib/analyticsService';
 import { PACKAGE_ID } from './config';
 
 
@@ -26,6 +28,9 @@ export default function App() {
   const [notification, setNotification] = useState<NotificationType | null>(null);
   const [isMerchant, setIsMerchant] = useState(false);
   const [hasCreatedRewards, setHasCreatedRewards] = useState(false);
+  
+  // Initialize analytics service
+  const analyticsService = new AnalyticsService(loyaltyService.client, PACKAGE_ID);
 
   // Load blockchain data
   const loadBlockchainData = async () => {
@@ -850,6 +855,11 @@ export default function App() {
             pointsBalance={pointsBalance}
             balance={0}
             transactions={transactions}
+          />
+        )}
+        {currentTab === 'analytics' && (
+          <AnalyticsTab 
+            analyticsService={analyticsService}
           />
         )}
       </main>
