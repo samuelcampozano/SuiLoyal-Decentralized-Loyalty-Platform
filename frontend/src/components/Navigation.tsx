@@ -21,6 +21,7 @@ export const Navigation: FC<NavigationProps> = ({
     { id: 'home', label: 'Home', icon: '🏠' },
     { id: 'rewards', label: 'Rewards', icon: '🎁' },
     { id: 'merchant', label: 'Merchant', icon: '🏪' },
+    { id: 'analytics', label: 'Analytics', icon: '📊' },
     { id: 'profile', label: 'Profile', icon: '👤' }
   ];
 
