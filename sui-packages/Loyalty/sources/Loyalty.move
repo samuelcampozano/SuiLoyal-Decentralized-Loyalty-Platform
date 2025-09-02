@@ -435,6 +435,7 @@ module loyalty::loyalty_system {
         
         // Update platform stats
         platform.total_points_redeemed = platform.total_points_redeemed + reward_template.points_cost;
+        platform.daily_transaction_count = platform.daily_transaction_count + 1;
         
         // Update merchant stats
         if (table::contains(&platform.merchants, reward_template.merchant)) {
