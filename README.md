@@ -14,7 +14,7 @@
 
 - **Devnet Deployment**: [sui-loyal.vercel.app](https://sui-loyal.vercel.app)
 - **Video Walkthrough**: [Watch Demo](demo/demo.mp4)
-- **Package Explorer**: [View on Sui Explorer](https://suiexplorer.com/object/0xa6e8c67e94418debfb4bf3291d41b6b7293d9e8307859db2dab3e018c6eeff4a?network=devnet)
+- **Package Explorer**: [View on Sui Explorer](https://suiexplorer.com/object/YOUR_PACKAGE_ID?network=devnet)
 
 ## ✨ Key Features
 
@@ -390,7 +390,7 @@ Copy `.env.example` to `.env` in the frontend directory:
 VITE_SUI_NETWORK=devnet
 
 # Contract Addresses (Update after deployment)
-VITE_PACKAGE_ID=0xa6e8c67e94418debfb4bf3291d41b6b7293d9e8307859db2dab3e018c6eeff4a
+VITE_PACKAGE_ID=0x_YOUR_DEPLOYED_PACKAGE_ID_HERE
 VITE_PLATFORM_ID=0x_YOUR_PLATFORM_OBJECT_ID_HERE
 VITE_ANALYTICS_REGISTRY_ID=0x_YOUR_ANALYTICS_REGISTRY_ID_HERE
 
