@@ -57,7 +57,7 @@ export class AnalyticsService {
         (parseInt(platformData.total_points_issued) - parseInt(platformData.total_points_redeemed)) :
         transactions.reduce((sum, tx) => tx.type === 'earned' ? sum + tx.amount : sum, 0);
 
-      const revenue = this.calculateRevenue(transactions);
+      const revenue = platformData ? parseInt(platformData.platform_fee_balance) / 1000000000 : this.calculateRevenue(transactions);
       const growth = await this.calculateGrowthRate();
 
       return {
