@@ -12,7 +12,7 @@ import { AnalyticsTab } from './components/tabs/AnalyticsTab';
 import { Transaction, Merchant, Reward, LoyaltyAccount, Notification as NotificationType } from './types';
 import { loyaltyService } from './lib/loyaltyService';
 import { AnalyticsService } from './lib/analyticsService';
-import { PACKAGE_ID } from './config';
+import { PACKAGE_ID, PLATFORM_ID } from './config';
 
 
 export default function App() {
@@ -30,7 +30,7 @@ export default function App() {
   const [hasCreatedRewards, setHasCreatedRewards] = useState(false);
   
   // Initialize analytics service
-  const analyticsService = new AnalyticsService(loyaltyService.client, PACKAGE_ID);
+  const analyticsService = new AnalyticsService(loyaltyService.client, PACKAGE_ID, PLATFORM_ID);
 
   // Load blockchain data
   const loadBlockchainData = async () => {

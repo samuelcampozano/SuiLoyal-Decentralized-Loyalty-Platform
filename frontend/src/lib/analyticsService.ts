@@ -14,40 +14,57 @@ import {
 export class AnalyticsService {
   private client: SuiClient;
   private packageId: string;
+  private platformId: string;
 
-  constructor(client: SuiClient, packageId: string) {
+  constructor(client: SuiClient, packageId: string, platformId: string) {
     this.client = client;
     this.packageId = packageId;
+    this.platformId = platformId;
+  }
+
+  private async getPlatformObjectData(): Promise<any> {
+    try {
+      const platformObject = await this.client.getObject({
+        id: this.platformId,
+        options: { showContent: true }
+      });
+      
+      if (platformObject.data?.content && 'fields' in platformObject.data.content) {
+        console.log('✅ Fetched real platform data:', platformObject.data.content.fields);
+        return platformObject.data.content.fields;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching platform object:', error);
+      return null;
+    }
   }
 
   async getOverallAnalytics(): Promise<AnalyticsData> {
     try {
-      // Try to get data from analytics registry first, fallback to events
-      const analyticsRegistry = await this.getAnalyticsRegistry();
+      // First, get real platform state directly from the platform object
+      const platformData = await this.getPlatformObjectData();
       
-      if (analyticsRegistry) {
-        return await this.getAnalyticsFromRegistry(analyticsRegistry);
-      }
-      
-      // Fallback to event parsing for backward compatibility
+      // Get transaction events for additional metrics
       const [transactions, merchants, users] = await Promise.all([
         this.getAllTransactions(),
         this.getAllMerchants(),
         this.getActiveUsers()
       ]);
 
-      const totalPoints = transactions.reduce((sum, tx) => 
-        tx.type === 'earned' ? sum + tx.amount : sum, 0
-      );
+      // Use real platform data as primary source
+      const totalPoints = platformData ? 
+        (parseInt(platformData.total_points_issued) - parseInt(platformData.total_points_redeemed)) :
+        transactions.reduce((sum, tx) => tx.type === 'earned' ? sum + tx.amount : sum, 0);
 
       const revenue = this.calculateRevenue(transactions);
       const growth = await this.calculateGrowthRate();
 
       return {
-        totalTransactions: transactions.length,
+        totalTransactions: platformData ? parseInt(platformData.daily_transaction_count) : transactions.length,
         totalPoints,
         totalUsers: users,
-        totalMerchants: merchants.length,
+        totalMerchants: platformData ? parseInt(platformData.merchants?.fields?.size || '0') : merchants.length,
         revenue,
         growth
       };
@@ -487,31 +504,6 @@ export class AnalyticsService {
     }
   }
 
-  private async getAnalyticsFromRegistry(registry: any): Promise<AnalyticsData> { // eslint-disable-line @typescript-eslint/no-explicit-any
-    try {
-      const content = registry.content?.fields;
-      const platformMetrics = content?.platform_metrics?.fields;
-      
-      return {
-        totalTransactions: parseInt(platformMetrics?.total_transactions || '0'),
-        totalPoints: parseInt(platformMetrics?.total_rewards_redeemed || '0') * 100, // Approximate
-        totalUsers: parseInt(platformMetrics?.total_users || '0'),
-        totalMerchants: parseInt(platformMetrics?.total_merchants || '0'),
-        revenue: parseFloat(content?.revenue_tracking?.fields?.total_merchant_fees || '0'),
-        growth: parseInt(platformMetrics?.platform_growth_rate || '0')
-      };
-    } catch (error) {
-      console.error('Error parsing analytics registry:', error);
-      return {
-        totalTransactions: 0,
-        totalPoints: 0,
-        totalUsers: 0,
-        totalMerchants: 0,
-        revenue: 0,
-        growth: 0
-      };
-    }
-  }
 
   async getEnhancedUserEngagement(): Promise<UserEngagementData> {
     try {
