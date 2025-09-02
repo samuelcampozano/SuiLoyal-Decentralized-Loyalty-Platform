@@ -58,62 +58,19 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
           analyticsService.getMerchantAnalytics()
         ]);
 
-        // Check if we have real data or need to use mock data
-        const hasRealData = analyticsData.totalTransactions > 0 || 
-                           analyticsData.totalUsers > 0 || 
-                           analyticsData.totalMerchants > 0;
-
-        if (hasRealData) {
-          console.log('✅ Using real blockchain data:', {
-            transactions: analyticsData.totalTransactions,
-            users: analyticsData.totalUsers,
-            merchants: analyticsData.totalMerchants,
-            revenue: analyticsData.revenue
-          });
-          setAnalytics(analyticsData);
-          setEngagement(engagementData);
-          setRevenue(revenueData);
-          setTimeSeriesData(timeData);
-          setMerchantAnalytics(merchantData);
-        } else {
-          // Use static mock data for development/demo
-          console.log('📊 Using static demo data (no real blockchain activity detected)');
-          setAnalytics(analyticsService.generateMockAnalyticsData());
-          setEngagement(analyticsService.generateMockUserEngagement());
-          setRevenue(analyticsService.generateMockRevenueBreakdown());
-          setTimeSeriesData(analyticsService.generateMockTimeSeriesData());
-          setMerchantAnalytics([
-            {
-              id: 'mock-merchant-1',
-              name: 'Coffee Paradise',
-              totalCustomers: 156,
-              pointsIssued: 12450,
-              pointsRedeemed: 8930,
-              revenue: 1247.32,
-              growth: 18.5,
-              transactions: analyticsService.generateMockTimeSeriesData().daily,
-              topRewards: [
-                { name: 'Free Coffee', redeemCount: 45, revenue: 225.00 },
-                { name: 'Pastry Combo', redeemCount: 32, revenue: 480.00 },
-                { name: '10% Off Coupon', redeemCount: 28, revenue: 168.00 }
-              ]
-            },
-            {
-              id: 'mock-merchant-2',
-              name: 'TechMart Electronics',
-              totalCustomers: 89,
-              pointsIssued: 8760,
-              pointsRedeemed: 5420,
-              revenue: 892.15,
-              growth: 12.3,
-              transactions: analyticsService.generateMockTimeSeriesData().daily,
-              topRewards: [
-                { name: 'Tech Accessory', redeemCount: 22, revenue: 330.00 },
-                { name: 'Discount Voucher', redeemCount: 18, revenue: 270.00 }
-              ]
-            }
-          ]);
-        }
+        // Always use real blockchain data, even if it's zero values
+        console.log('✅ Using real blockchain data from platform object:', {
+          transactions: analyticsData.totalTransactions,
+          users: analyticsData.totalUsers,
+          merchants: analyticsData.totalMerchants,
+          revenue: analyticsData.revenue
+        });
+        
+        setAnalytics(analyticsData);
+        setEngagement(engagementData);
+        setRevenue(revenueData);
+        setTimeSeriesData(timeData);
+        setMerchantAnalytics(merchantData);
       } catch (error) {
         console.error('❌ Error loading blockchain data, using static demo data:', error);
         // Fallback to static mock data on error
