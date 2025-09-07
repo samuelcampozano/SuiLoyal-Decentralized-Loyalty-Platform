@@ -32,6 +32,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
   const [engagement, setEngagement] = useState<UserEngagementData | null>(null);
   const [revenue, setRevenue] = useState<RevenueBreakdown | null>(null);
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData | null>(null);
+  const [growthSeriesData, setGrowthSeriesData] = useState<TimeSeriesData | null>(null);
   const [merchantAnalytics, setMerchantAnalytics] = useState<MerchantAnalytics[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [loading, setLoading] = useState(true);
@@ -49,12 +50,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
           engagementData,
           revenueData,
           timeData,
+          growthData,
           merchantData
         ] = await Promise.all([
           analyticsService.getOverallAnalytics(),
           analyticsService.getEnhancedUserEngagement(),
           analyticsService.getRevenueBreakdown(),
           analyticsService.getEnhancedTimeSeriesData(selectedPeriod),
+          analyticsService.getGrowthSeriesData(selectedPeriod),
           analyticsService.getMerchantAnalytics()
         ]);
 
@@ -70,6 +73,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
         setEngagement(engagementData);
         setRevenue(revenueData);
         setTimeSeriesData(timeData);
+        setGrowthSeriesData(growthData);
         setMerchantAnalytics(merchantData);
       } catch (error) {
         console.error('❌ Error loading blockchain data, using static demo data:', error);
@@ -78,6 +82,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
         setEngagement(analyticsService.generateMockUserEngagement());
         setRevenue(analyticsService.generateMockRevenueBreakdown());
         setTimeSeriesData(analyticsService.generateMockTimeSeriesData());
+        setGrowthSeriesData(analyticsService.generateMockTimeSeriesData());
         setMerchantAnalytics([]);
       }
     } catch (error) {
@@ -244,11 +249,11 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
         />
         
         <LineChart
-          data={timeSeriesData?.[selectedPeriod] || []}
-          title={`Growth Trend (${selectedPeriod})`}
+          data={growthSeriesData?.[selectedPeriod] || []}
+          title={`Growth Rate % (${selectedPeriod})`}
           color="#10B981"
           height={250}
-          formatValue={formatNumber}
+          formatValue={(value) => `${value}%`}
         />
       </div>
 
