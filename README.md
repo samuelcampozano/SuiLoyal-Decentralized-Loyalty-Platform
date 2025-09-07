@@ -1,4 +1,4 @@
-# 🎯 SuiLoyal - Decentralized Loyalty Platform
+# SuiLoyal - Enterprise Loyalty Platform on Sui
 
 [![Sui](https://img.shields.io/badge/Built%20on-Sui-blue)](https://sui.io)
 [![Move](https://img.shields.io/badge/Smart%20Contracts-Move-green)](https://github.com/MystenLabs/sui/tree/main/sui-move)
@@ -6,15 +6,28 @@
 [![React](https://img.shields.io/badge/Framework-React-61DAFB)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> A comprehensive cross-merchant loyalty platform built on Sui blockchain featuring real-time analytics, merchant insights, and customer engagement tracking. Businesses issue verifiable loyalty points that customers truly own, while gaining access to powerful analytics dashboards and cross-platform redemption capabilities.
+A production-ready decentralized loyalty platform leveraging Sui blockchain's object model for scalable cross-merchant rewards. Built with dual-module Move architecture, real-time analytics engine, and comprehensive dashboard for merchants and customers.
 
-![SuiLoyal Demo](demo/demo.gif)
+**Key Technical Innovations:**
+- Advanced Move smart contract architecture with comprehensive analytics tracking
+- Real-time blockchain data processing with transaction deduplication  
+- Dynamic growth rate analytics supporting viral adoption patterns
+- Professional gas-efficient contract design with proper error handling
 
-## 🌟 Live Demo
+![SuiLoyal Architecture](https://img.shields.io/badge/Architecture-Blockchain%20+%20Analytics-blue?style=for-the-badge)
 
-- **Devnet Deployment**: [sui-loyal.vercel.app](https://sui-loyal.vercel.app)
-- **Video Walkthrough**: [Watch Demo](demo/demo.mp4)
-- **Package Explorer**: [View on Sui Explorer](https://suiexplorer.com/object/YOUR_PACKAGE_ID?network=devnet)
+## 🚀 Technical Showcase
+
+**Smart Contract Expertise:**
+- Package ID: `0xbea78347a7634117af61f2e2ec25626a6858d830d0468f545ac6fc60303329a8`
+- Platform Object: `0x927cb6931cec781cf4611f722c0c2011bc362b2d7c686f9ae452c82b9fb47efb`
+- [View on Sui Explorer](https://suiexplorer.com/object/0xbea78347a7634117af61f2e2ec25626a6858d830d0468f545ac6fc60303329a8?network=devnet)
+
+**Development Highlights:**
+- Professional Git workflow with semantic versioning (v1.7.0)
+- TypeScript strict mode with comprehensive error handling
+- Real-time analytics with 30-second refresh intervals
+- Gas-optimized Move contracts with proper capability patterns
 
 ## ✨ Key Features
 
@@ -108,8 +121,8 @@ graph TB
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/sui-loyal.git
-cd sui-loyal
+git clone https://github.com/samuelcampozano/SuiLoyal-Decentralized-Loyalty-Platform.git
+cd SuiLoyal-Decentralized-Loyalty-Platform/sui-loyal
 ```
 
 ### 2. Deploy Smart Contracts
@@ -563,6 +576,6 @@ For questions, support, and community engagement:
 
 ---
 
-**Built with ❤️ using Sui blockchain technology and modern web development practices**
-
-*SuiLoyal - Where loyalty meets innovation on the blockchain*
+**Technical Stack:** Sui Move, TypeScript, React, TailwindCSS, Recharts  
+**Architecture:** Dual-module smart contracts with comprehensive analytics engine  
+**Version:** 1.7.0 - Production ready with full devnet deployment
