@@ -544,15 +544,21 @@ export class AnalyticsService {
         return txDate >= startOfDay(prevDate) && txDate <= endOfDay(prevDate);
       }).length;
       
-      // Calculate growth rate vs previous day with smoothing
+      // Calculate natural growth rate without artificial caps
       let growthRate = 0;
       if (yesterdayTransactions > 0) {
         growthRate = ((todayTransactions - yesterdayTransactions) / yesterdayTransactions) * 100;
-        // Cap extreme values to make chart more readable
-        growthRate = Math.max(-50, Math.min(50, growthRate));
       } else if (todayTransactions > 0) {
-        // New activity: show moderate positive growth instead of 100%
-        growthRate = 25;
+        // New activity: calculate based on baseline expectation
+        // Use a dynamic baseline rather than fixed percentage to reflect actual growth
+        const baselineExpectation = 1; // Expected minimum daily transactions
+        growthRate = ((todayTransactions - baselineExpectation) / baselineExpectation) * 100;
+        growthRate = Math.max(100, growthRate); // Minimum 100% for genuine new activity
+      }
+      
+      // Only apply soft limits for extreme negative values to prevent chart distortion
+      if (growthRate < -95) {
+        growthRate = -95; // Cap extreme drops but allow natural viral spikes
       }
       
       daily.push({
@@ -581,10 +587,16 @@ export class AnalyticsService {
       let growthRate = 0;
       if (lastWeekTransactions > 0) {
         growthRate = ((thisWeekTransactions - lastWeekTransactions) / lastWeekTransactions) * 100;
-        // Cap weekly growth to reasonable range
-        growthRate = Math.max(-75, Math.min(75, growthRate));
       } else if (thisWeekTransactions > 0) {
-        growthRate = 35; // Moderate positive growth for new activity
+        // Calculate weekly growth based on transaction volume
+        const baselineWeeklyExpectation = 3; // Expected minimum weekly transactions
+        growthRate = ((thisWeekTransactions - baselineWeeklyExpectation) / baselineWeeklyExpectation) * 100;
+        growthRate = Math.max(150, growthRate); // Minimum 150% for new weekly activity
+      }
+      
+      // Soft limit only extreme negative values
+      if (growthRate < -90) {
+        growthRate = -90; // Allow viral growth spikes, limit only extreme drops
       }
       
       weekly.push({
@@ -613,10 +625,16 @@ export class AnalyticsService {
       let growthRate = 0;
       if (lastMonthTransactions > 0) {
         growthRate = ((thisMonthTransactions - lastMonthTransactions) / lastMonthTransactions) * 100;
-        // Cap monthly growth to reasonable range
-        growthRate = Math.max(-90, Math.min(90, growthRate));
       } else if (thisMonthTransactions > 0) {
-        growthRate = 50; // Moderate positive growth for new monthly activity
+        // Calculate monthly growth based on transaction volume
+        const baselineMonthlyExpectation = 10; // Expected minimum monthly transactions
+        growthRate = ((thisMonthTransactions - baselineMonthlyExpectation) / baselineMonthlyExpectation) * 100;
+        growthRate = Math.max(200, growthRate); // Minimum 200% for new monthly activity
+      }
+      
+      // Allow extreme growth spikes, only limit catastrophic drops
+      if (growthRate < -85) {
+        growthRate = -85; // Preserve viral growth potential while maintaining chart integrity
       }
       
       monthly.push({
