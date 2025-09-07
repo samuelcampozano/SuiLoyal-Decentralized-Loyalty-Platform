@@ -2,6 +2,7 @@ export interface Transaction {
   id: string;
   type: 'earned' | 'redeemed' | 'other';
   merchant: string;
+  customer?: string; // Wallet address of the customer
   amount: number;
   reward?: string;
   date: string;

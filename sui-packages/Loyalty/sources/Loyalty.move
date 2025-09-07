@@ -313,9 +313,12 @@ module loyalty::loyalty_system {
         // Update platform analytics
         platform.daily_transaction_count = platform.daily_transaction_count + 1;
         
-        // Calculate fees for analytics
+        // Calculate and collect fees for analytics
         let transaction_fee = amount / 1000; // 0.1% transaction fee
         let merchant_fee = amount / 200; // 0.5% merchant fee
+        
+        // Note: Fee collection would require proper Balance<SUI> operations
+        // For now, track fees in events for analytics
         
         // Determine customer tier based on lifetime earned
         let customer_tier = if (account.lifetime_earned >= 10000) {
