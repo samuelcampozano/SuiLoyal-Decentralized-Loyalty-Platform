@@ -52,16 +52,19 @@ export class AnalyticsService {
         this.getActiveUsers()
       ]);
 
-      // Use real platform data as primary source
+      // Use real platform data as primary source, fallback to calculated values
       const totalPoints = platformData ? 
         (parseInt(platformData.total_points_issued) - parseInt(platformData.total_points_redeemed)) :
-        transactions.reduce((sum, tx) => tx.type === 'earned' ? sum + tx.amount : sum, 0);
+        this.calculateNetPointsFromTransactions(transactions);
 
-      const revenue = this.calculateRevenue(transactions); // Calculate from transaction events
+      const revenue = this.calculateRevenue(transactions);
       const growth = await this.calculateGrowthRate();
 
+      // Use ALL transactions count, not platform daily count (which resets daily)
+      const totalTransactionCount = transactions.length;
+
       return {
-        totalTransactions: platformData ? parseInt(platformData.daily_transaction_count) : transactions.length,
+        totalTransactions: totalTransactionCount,
         totalPoints,
         totalUsers: users,
         totalMerchants: platformData ? parseInt(platformData.merchants?.fields?.size || '0') : merchants.length,
@@ -254,6 +257,25 @@ export class AnalyticsService {
     }
   }
 
+  async getGrowthSeriesData(_period: 'daily' | 'weekly' | 'monthly' = 'daily'): Promise<TimeSeriesData> {
+    try {
+      const transactions = await this.getAllTransactions();
+      
+      return {
+        daily: this.generateGrowthTimeSeriesData(transactions).daily,
+        weekly: this.generateGrowthTimeSeriesData(transactions).weekly,
+        monthly: this.generateGrowthTimeSeriesData(transactions).monthly
+      };
+    } catch (error) {
+      console.error('Error generating growth time series data:', error);
+      return {
+        daily: [],
+        weekly: [],
+        monthly: []
+      };
+    }
+  }
+
   private async getAllTransactions(): Promise<Transaction[]> {
     try {
       // Try both module names to be compatible
@@ -375,8 +397,27 @@ export class AnalyticsService {
     }
   }
 
-  private calculateRevenue(transactions: Transaction[]): number {
+  private calculateNetPointsFromTransactions(transactions: Transaction[]): number {
     return transactions.reduce((sum, tx) => {
+      if (tx.type === 'earned') return sum + tx.amount;
+      if (tx.type === 'redeemed') return sum - tx.amount;
+      return sum;
+    }, 0);
+  }
+
+  private deduplicateTransactions(transactions: Transaction[]): Transaction[] {
+    const uniqueTransactions = new Map<string, Transaction>();
+    transactions.forEach(tx => {
+      uniqueTransactions.set(tx.id, tx);
+    });
+    return Array.from(uniqueTransactions.values());
+  }
+
+  private calculateRevenue(transactions: Transaction[]): number {
+    // Avoid double counting - only count each transaction once
+    const uniqueTransactions = this.deduplicateTransactions(transactions);
+
+    return uniqueTransactions.reduce((sum, tx) => {
       if (tx.type === 'earned') return sum + (tx.amount * 0.01);
       if (tx.type === 'redeemed') return sum + (tx.amount * 0.005);
       return sum;
@@ -426,11 +467,14 @@ export class AnalyticsService {
   private generateTimeSeriesData(transactions: Transaction[]): TimeSeriesData {
     const now = new Date();
     
+    // Remove duplicates to prevent double counting
+    const uniqueTransactions = this.deduplicateTransactions(transactions);
+    
     // Generate daily data for last 30 days
     const daily: ChartData[] = [];
     for (let i = 29; i >= 0; i--) {
       const date = subDays(now, i);
-      const dayTransactions = transactions.filter(tx => {
+      const dayTransactions = uniqueTransactions.filter(tx => {
         const txDate = new Date(tx.date);
         return txDate >= startOfDay(date) && txDate <= endOfDay(date);
       });
@@ -446,7 +490,7 @@ export class AnalyticsService {
     const weekly: ChartData[] = [];
     for (let i = 11; i >= 0; i--) {
       const date = subWeeks(now, i);
-      const weekTransactions = transactions.filter(tx => {
+      const weekTransactions = uniqueTransactions.filter(tx => {
         const txDate = new Date(tx.date);
         return txDate >= date && txDate < subWeeks(now, i - 1);
       });
@@ -462,7 +506,7 @@ export class AnalyticsService {
     const monthly: ChartData[] = [];
     for (let i = 11; i >= 0; i--) {
       const date = subMonths(now, i);
-      const monthTransactions = transactions.filter(tx => {
+      const monthTransactions = uniqueTransactions.filter(tx => {
         const txDate = new Date(tx.date);
         return txDate >= date && txDate < subMonths(now, i - 1);
       });
@@ -470,6 +514,97 @@ export class AnalyticsService {
       monthly.push({
         date: format(date, 'MMM yyyy'),
         value: monthTransactions.length,
+        label: format(date, 'yyyy-MM')
+      });
+    }
+
+    return { daily, weekly, monthly };
+  }
+
+  private generateGrowthTimeSeriesData(transactions: Transaction[]): TimeSeriesData {
+    const now = new Date();
+    
+    // Remove duplicates to prevent double counting
+    const uniqueTransactions = this.deduplicateTransactions(transactions);
+    
+    // Generate daily growth data for last 30 days
+    const daily: ChartData[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = subDays(now, i);
+      const prevDate = subDays(date, 1);
+      
+      const todayTransactions = uniqueTransactions.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate >= startOfDay(date) && txDate <= endOfDay(date);
+      }).length;
+      
+      const yesterdayTransactions = uniqueTransactions.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate >= startOfDay(prevDate) && txDate <= endOfDay(prevDate);
+      }).length;
+      
+      // Calculate growth rate vs previous day
+      const growthRate = yesterdayTransactions > 0 
+        ? ((todayTransactions - yesterdayTransactions) / yesterdayTransactions) * 100
+        : todayTransactions > 0 ? 100 : 0;
+      
+      daily.push({
+        date: format(date, 'MMM dd'),
+        value: Math.round(growthRate * 10) / 10, // Round to 1 decimal
+        label: format(date, 'yyyy-MM-dd')
+      });
+    }
+
+    // Generate weekly growth data
+    const weekly: ChartData[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = subWeeks(now, i);
+      const prevDate = subWeeks(date, 1);
+      
+      const thisWeekTransactions = uniqueTransactions.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate >= date && txDate < subWeeks(now, i - 1);
+      }).length;
+      
+      const lastWeekTransactions = uniqueTransactions.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate >= prevDate && txDate < date;
+      }).length;
+      
+      const growthRate = lastWeekTransactions > 0 
+        ? ((thisWeekTransactions - lastWeekTransactions) / lastWeekTransactions) * 100
+        : thisWeekTransactions > 0 ? 100 : 0;
+      
+      weekly.push({
+        date: format(date, 'MMM dd'),
+        value: Math.round(growthRate * 10) / 10,
+        label: format(date, 'yyyy-MM-dd')
+      });
+    }
+
+    // Generate monthly growth data
+    const monthly: ChartData[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = subMonths(now, i);
+      const prevDate = subMonths(date, 1);
+      
+      const thisMonthTransactions = uniqueTransactions.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate >= date && txDate < subMonths(now, i - 1);
+      }).length;
+      
+      const lastMonthTransactions = uniqueTransactions.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate >= prevDate && txDate < date;
+      }).length;
+      
+      const growthRate = lastMonthTransactions > 0 
+        ? ((thisMonthTransactions - lastMonthTransactions) / lastMonthTransactions) * 100
+        : thisMonthTransactions > 0 ? 100 : 0;
+      
+      monthly.push({
+        date: format(date, 'MMM yyyy'),
+        value: Math.round(growthRate * 10) / 10,
         label: format(date, 'yyyy-MM')
       });
     }
