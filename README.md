@@ -24,10 +24,12 @@ A production-ready decentralized loyalty platform leveraging Sui blockchain's ob
 - [View on Sui Explorer](https://suiexplorer.com/object/0xbea78347a7634117af61f2e2ec25626a6858d830d0468f545ac6fc60303329a8?network=devnet)
 
 **Development Highlights:**
-- Professional Git workflow with semantic versioning (v1.7.0)
+- Professional Git workflow with semantic versioning (v1.7.1)
 - TypeScript strict mode with comprehensive error handling
 - Real-time analytics with 30-second refresh intervals
 - Gas-optimized Move contracts with proper capability patterns
+- Production deployment on Sui Devnet with verified contracts
+- Comprehensive test coverage for smart contract functionality
 
 ## ✨ Key Features
 
@@ -486,6 +488,16 @@ We welcome contributions to SuiLoyal! This project follows professional developm
 6. Push to your feature branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request with a detailed description
 
+### Commit Convention
+This project follows [Conventional Commits](https://conventionalcommits.org/):
+- `feat:` New features
+- `fix:` Bug fixes  
+- `docs:` Documentation changes
+- `style:` Code style changes
+- `refactor:` Code refactoring
+- `test:` Test additions/changes
+- `chore:` Maintenance tasks
+
 ### Code Standards
 - **TypeScript**: Use strict typing throughout the frontend
 - **Move**: Follow Sui Move best practices for smart contracts
@@ -574,8 +586,17 @@ For questions, support, and community engagement:
 - **Event Types**: 10+ enhanced blockchain events
 - **Test Coverage**: Comprehensive smart contract tests
 
+## 👨‍💻 Developer
+
+**Samuel Campozano Lopez**  
+Blockchain Developer specializing in Sui ecosystem and Move smart contracts
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Samuel_Campozano_Lopez-blue?style=flat&logo=linkedin)](https://linkedin.com/in/samuel-campozano-lopez)  
+[![Email](https://img.shields.io/badge/Email-samuelco860%40gmail.com-red?style=flat&logo=gmail)](mailto:samuelco860@gmail.com)  
+[![GitHub](https://img.shields.io/badge/GitHub-samuelcampozano-black?style=flat&logo=github)](https://github.com/samuelcampozano)
+
 ---
 
 **Technical Stack:** Sui Move, TypeScript, React, TailwindCSS, Recharts  
 **Architecture:** Dual-module smart contracts with comprehensive analytics engine  
-**Version:** 1.7.0 - Production ready with full devnet deployment
+**Version:** 1.7.1 - Production ready with full devnet deployment
