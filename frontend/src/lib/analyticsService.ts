@@ -306,9 +306,10 @@ export class AnalyticsService {
 
       const transactions = events.data
         .map(event => this.parseTransactionEvent(event))
-        .filter((tx): tx is Transaction => tx !== null);
+        .filter((tx): tx is Transaction => tx !== null)
+        .filter(tx => tx.type !== 'other'); // Exclude TransactionAnalytics events to prevent double counting
         
-      console.log(`Found ${transactions.length} real transactions from blockchain`);
+      console.log(`Found ${transactions.length} real transactions from blockchain (filtered duplicates)`);
       return transactions;
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -543,10 +544,16 @@ export class AnalyticsService {
         return txDate >= startOfDay(prevDate) && txDate <= endOfDay(prevDate);
       }).length;
       
-      // Calculate growth rate vs previous day
-      const growthRate = yesterdayTransactions > 0 
-        ? ((todayTransactions - yesterdayTransactions) / yesterdayTransactions) * 100
-        : todayTransactions > 0 ? 100 : 0;
+      // Calculate growth rate vs previous day with smoothing
+      let growthRate = 0;
+      if (yesterdayTransactions > 0) {
+        growthRate = ((todayTransactions - yesterdayTransactions) / yesterdayTransactions) * 100;
+        // Cap extreme values to make chart more readable
+        growthRate = Math.max(-50, Math.min(50, growthRate));
+      } else if (todayTransactions > 0) {
+        // New activity: show moderate positive growth instead of 100%
+        growthRate = 25;
+      }
       
       daily.push({
         date: format(date, 'MMM dd'),
@@ -571,9 +578,14 @@ export class AnalyticsService {
         return txDate >= prevDate && txDate < date;
       }).length;
       
-      const growthRate = lastWeekTransactions > 0 
-        ? ((thisWeekTransactions - lastWeekTransactions) / lastWeekTransactions) * 100
-        : thisWeekTransactions > 0 ? 100 : 0;
+      let growthRate = 0;
+      if (lastWeekTransactions > 0) {
+        growthRate = ((thisWeekTransactions - lastWeekTransactions) / lastWeekTransactions) * 100;
+        // Cap weekly growth to reasonable range
+        growthRate = Math.max(-75, Math.min(75, growthRate));
+      } else if (thisWeekTransactions > 0) {
+        growthRate = 35; // Moderate positive growth for new activity
+      }
       
       weekly.push({
         date: format(date, 'MMM dd'),
@@ -598,9 +610,14 @@ export class AnalyticsService {
         return txDate >= prevDate && txDate < date;
       }).length;
       
-      const growthRate = lastMonthTransactions > 0 
-        ? ((thisMonthTransactions - lastMonthTransactions) / lastMonthTransactions) * 100
-        : thisMonthTransactions > 0 ? 100 : 0;
+      let growthRate = 0;
+      if (lastMonthTransactions > 0) {
+        growthRate = ((thisMonthTransactions - lastMonthTransactions) / lastMonthTransactions) * 100;
+        // Cap monthly growth to reasonable range
+        growthRate = Math.max(-90, Math.min(90, growthRate));
+      } else if (thisMonthTransactions > 0) {
+        growthRate = 50; // Moderate positive growth for new monthly activity
+      }
       
       monthly.push({
         date: format(date, 'MMM yyyy'),
@@ -640,12 +657,26 @@ export class AnalyticsService {
       const eventType = event.type.split('::').pop();
       const parsedJson = event.parsedJson;
       
+      // Skip TransactionAnalytics events to prevent double counting
+      // Only count the primary business events (PointsIssued, PointsRedeemed)
+      if (eventType === 'TransactionAnalytics') {
+        return {
+          id: event.id.txDigest + '_analytics', // Different ID to avoid conflicts
+          type: 'other', // Will be filtered out
+          merchant: parsedJson.merchant || 'Unknown',
+          customer: parsedJson.user || 'Unknown',
+          amount: parseInt(parsedJson.amount || '0'),
+          reward: '',
+          date: new Date(parseInt(event.timestampMs || '0')).toISOString()
+        };
+      }
+      
       return {
         id: event.id.txDigest,
         type: eventType === 'PointsIssued' ? 'earned' : 
               eventType === 'PointsRedeemed' ? 'redeemed' : 'other',
         merchant: parsedJson.merchant || 'Unknown',
-        customer: parsedJson.customer || 'Unknown', // Extract customer wallet address
+        customer: parsedJson.customer || parsedJson.user || 'Unknown', // Handle both customer and user fields
         amount: parseInt(parsedJson.amount || '0'),
         reward: parsedJson.reward_name,
         date: new Date(parseInt(event.timestampMs || '0')).toISOString()
