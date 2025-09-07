@@ -116,14 +116,16 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
 
   const getPieChartData = () => {
     if (!revenue) return [];
-    return [
+    
+    // Filter out zero values for cleaner pie chart
+    const data = [
       {
         name: 'Merchant Fees',
         value: revenue.merchantFees,
         color: '#3B82F6'
       },
       {
-        name: 'Transaction Fees',
+        name: 'Transaction Fees', 
         value: revenue.transactionFees,
         color: '#8B5CF6'
       },
@@ -132,7 +134,20 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analyticsService }) 
         value: revenue.premiumFeatures,
         color: '#10B981'
       }
-    ];
+    ].filter(item => item.value > 0);
+    
+    // If no revenue yet, show placeholder message instead of empty chart
+    if (data.length === 0 || revenue.total === 0) {
+      return [
+        {
+          name: 'No Revenue Yet',
+          value: 1,
+          color: '#E5E7EB'
+        }
+      ];
+    }
+    
+    return data;
   };
 
   if (loading) {
