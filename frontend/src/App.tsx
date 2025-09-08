@@ -21,6 +21,7 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
   const [pointsBalance, setPointsBalance] = useState(0);
+  const [suiBalance, setSuiBalance] = useState(0);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -84,6 +85,10 @@ export default function App() {
       // Load points balance from blockchain
       const balance = await loyaltyService.getUserPointsBalance(userAddress);
       setPointsBalance(balance);
+      
+      // Load SUI balance from blockchain
+      const suiBalance = await loyaltyService.getSuiBalance(userAddress);
+      setSuiBalance(suiBalance);
       
       // Check if user has loyalty account
       const hasAccount = await loyaltyService.hasLoyaltyAccount(userAddress);
@@ -168,6 +173,7 @@ export default function App() {
       }
     } else {
       setPointsBalance(0);
+      setSuiBalance(0);
       setLoyaltyAccount(null);
       setTransactions([]);
       setIsMerchant(false);
@@ -853,7 +859,7 @@ export default function App() {
             isConnected={!!currentAccount}
             walletAddress={currentAccount?.address || ''}
             pointsBalance={pointsBalance}
-            balance={0}
+            balance={suiBalance}
             transactions={transactions}
           />
         )}

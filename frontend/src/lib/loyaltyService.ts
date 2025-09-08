@@ -770,6 +770,23 @@ export class LoyaltyService {
       return [];
     }
   }
+
+  // Get SUI balance for a wallet address
+  async getSuiBalance(address: string): Promise<number> {
+    try {
+      const balance = await this.client.getBalance({
+        owner: address,
+        coinType: '0x2::sui::SUI'
+      });
+      
+      // Convert from MIST to SUI (1 SUI = 1,000,000,000 MIST)
+      const suiBalance = Number(balance.totalBalance) / 1_000_000_000;
+      return Math.round(suiBalance * 100) / 100; // Round to 2 decimal places
+    } catch (error) {
+      console.error('Error fetching SUI balance:', error);
+      return 0;
+    }
+  }
 }
 
 export const loyaltyService = new LoyaltyService();
