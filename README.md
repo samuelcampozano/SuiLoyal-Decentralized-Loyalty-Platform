@@ -19,9 +19,9 @@ A production-ready decentralized loyalty platform leveraging Sui blockchain's ob
 ## 🚀 Technical Showcase
 
 **Smart Contract Expertise:**
-- Package ID: `0xbea78347a7634117af61f2e2ec25626a6858d830d0468f545ac6fc60303329a8`
-- Platform Object: `0x927cb6931cec781cf4611f722c0c2011bc362b2d7c686f9ae452c82b9fb47efb`
-- [View on Sui Explorer](https://suiexplorer.com/object/0xbea78347a7634117af61f2e2ec25626a6858d830d0468f545ac6fc60303329a8?network=devnet)
+- Package ID: `0xcb07c6fc93dc3f520da03160376ea43f9ca219398bc94059a002b37e5861e5bd`
+- Platform Object: `0x369fab7b55295887ce71351327025418cfd2a82ee59d32c57f851e82786db782`
+- [View on Sui Explorer](https://suiexplorer.com/object/0xcb07c6fc93dc3f520da03160376ea43f9ca219398bc94059a002b37e5861e5bd?network=devnet)
 
 **Development Highlights:**
 - Professional Git workflow with semantic versioning (v1.7.1)
