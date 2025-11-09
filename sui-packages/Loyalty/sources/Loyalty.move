@@ -21,7 +21,6 @@ module loyalty::loyalty_system {
     const ERewardOutOfStock: u64 = 1006;
 
     // ===== Constants =====
-    const POINTS_DECIMALS: u8 = 2;
     const DEFAULT_POINTS_RATE: u64 = 100; // 1 SUI = 100 points
 
     // ===== Core Structs =====
@@ -203,13 +202,13 @@ module loyalty::loyalty_system {
     // ===== Merchant Functions =====
     
     /// Register as a merchant on the platform
-    public entry fun register_merchant(
+    public fun register_merchant(
         platform: &mut LoyaltyPlatform,
         name: vector<u8>,
         description: vector<u8>,
         clock: &Clock,
         ctx: &mut TxContext
-    ) {
+    ): MerchantCap {
         let sender = tx_context::sender(ctx);
         assert!(!table::contains(&platform.merchants, sender), EMerchantAlreadyExists);
         
@@ -232,20 +231,22 @@ module loyalty::loyalty_system {
             platform_id: object::id(platform),
         };
         
-        transfer::transfer(merchant_cap, sender);
+        // transfer::transfer(merchant_cap, sender); // Removed direct transfer
         
         event::emit(MerchantRegistered {
             merchant: sender,
             name: utf8(name),
             timestamp: clock::timestamp_ms(clock),
         });
+
+        merchant_cap // Return the MerchantCap
     }
 
     /// Create or get user loyalty account
-    public entry fun create_loyalty_account(
+    public fun create_loyalty_account(
         clock: &Clock,
         ctx: &mut TxContext
-    ) {
+    ): LoyaltyAccount {
         let sender = tx_context::sender(ctx);
         let timestamp = clock::timestamp_ms(clock);
         
@@ -270,17 +271,18 @@ module loyalty::loyalty_system {
             onboarding_source: utf8(b"web_platform"),
         });
         
-        transfer::transfer(account, sender);
+        // transfer::transfer(account, sender); // Removed direct transfer
+        account // Return the LoyaltyAccount
     }
 
     /// Issue points to a customer (merchant only)
-    public entry fun issue_points(
+    public fun issue_points(
         platform: &mut LoyaltyPlatform,
         merchant_cap: &MerchantCap,
         account: &mut LoyaltyAccount,
         amount: u64,
         clock: &Clock,
-        ctx: &mut TxContext
+        _ctx: &mut TxContext
     ) {
         // Verify merchant
         assert!(table::contains(&platform.merchants, merchant_cap.merchant_address), ENotMerchant);
@@ -355,7 +357,7 @@ module loyalty::loyalty_system {
     }
 
     /// Issue points for a payment (automatic conversion)
-    public entry fun issue_points_for_payment(
+    public fun issue_points_for_payment(
         platform: &mut LoyaltyPlatform,
         merchant_cap: &MerchantCap,
         account: &mut LoyaltyAccount,
@@ -386,7 +388,7 @@ module loyalty::loyalty_system {
     // ===== Reward Functions =====
     
     /// Create a reward template (merchant only)
-    public entry fun create_reward_template(
+    public fun create_reward_template(
         merchant_cap: &MerchantCap,
         name: vector<u8>,
         description: vector<u8>,
@@ -420,13 +422,13 @@ module loyalty::loyalty_system {
     }
 
     /// Redeem points for a reward NFT
-    public entry fun redeem_reward(
+    public fun redeem_reward(
         platform: &mut LoyaltyPlatform,
         account: &mut LoyaltyAccount,
         reward_template: &mut RewardTemplate,
         clock: &Clock,
         ctx: &mut TxContext
-    ) {
+    ): RewardNFT {
         // Verify conditions
         assert!(reward_template.is_active, ERewardNotFound);
         assert!(reward_template.remaining_supply > 0, ERewardOutOfStock);
@@ -508,11 +510,12 @@ module loyalty::loyalty_system {
             timestamp: clock::timestamp_ms(clock),
         });
         
-        transfer::transfer(reward_nft, tx_context::sender(ctx));
+        // transfer::transfer(reward_nft, tx_context::sender(ctx)); // Removed direct transfer
+        reward_nft // Return the RewardNFT
     }
 
     /// Update reward template name (merchant only)
-    public entry fun update_reward_name(
+    public fun update_reward_name(
         merchant_cap: &MerchantCap,
         reward_template: &mut RewardTemplate,
         new_name: vector<u8>,
@@ -528,7 +531,7 @@ module loyalty::loyalty_system {
     }
 
     /// Update reward template description (merchant only)
-    public entry fun update_reward_description(
+    public fun update_reward_description(
         merchant_cap: &MerchantCap,
         reward_template: &mut RewardTemplate,
         new_description: vector<u8>,
@@ -544,7 +547,7 @@ module loyalty::loyalty_system {
     }
 
     /// Update reward template points cost (merchant only)
-    public entry fun update_reward_cost(
+    public fun update_reward_cost(
         merchant_cap: &MerchantCap,
         reward_template: &mut RewardTemplate,
         new_cost: u64,
@@ -561,7 +564,7 @@ module loyalty::loyalty_system {
     }
 
     /// Update reward template image URL (merchant only)
-    public entry fun update_reward_image(
+    public fun update_reward_image(
         merchant_cap: &MerchantCap,
         reward_template: &mut RewardTemplate,
         new_image_url: vector<u8>,
@@ -577,7 +580,7 @@ module loyalty::loyalty_system {
     }
 
     /// Add supply to reward template (merchant only)
-    public entry fun add_reward_supply(
+    public fun add_reward_supply(
         merchant_cap: &MerchantCap,
         reward_template: &mut RewardTemplate,
         additional_supply: u64,
@@ -596,7 +599,7 @@ module loyalty::loyalty_system {
     }
 
     /// Set reward template remaining supply directly (merchant only)
-    public entry fun set_reward_supply(
+    public fun set_reward_supply(
         merchant_cap: &MerchantCap,
         reward_template: &mut RewardTemplate,
         new_remaining_supply: u64,
@@ -621,7 +624,7 @@ module loyalty::loyalty_system {
     }
 
     /// Delete reward template (merchant only) - marks as inactive instead of destroying
-    public entry fun delete_reward_template(
+    public fun delete_reward_template(
         merchant_cap: &MerchantCap,
         reward_template: &mut RewardTemplate,
     ) {
@@ -635,7 +638,7 @@ module loyalty::loyalty_system {
     }
 
     /// Transfer points between users
-    public entry fun transfer_points(
+    public fun transfer_points(
         from_account: &mut LoyaltyAccount,
         to_account: &mut LoyaltyAccount,
         amount: u64,
@@ -671,7 +674,7 @@ module loyalty::loyalty_system {
     // ===== Analytics Integration Functions =====
     
     /// Link analytics registry to platform (admin only)
-    public entry fun link_analytics_registry(
+    public fun link_analytics_registry(
         platform: &mut LoyaltyPlatform,
         registry_id: ID,
         ctx: &mut TxContext
@@ -681,7 +684,7 @@ module loyalty::loyalty_system {
     }
     
     /// Start user session for analytics tracking
-    public entry fun start_user_session(
+    public fun start_user_session(
         account: &mut LoyaltyAccount,
         session_id: u64,
         platform_source: vector<u8>,
@@ -703,7 +706,7 @@ module loyalty::loyalty_system {
     }
     
     /// End user session for analytics tracking
-    public entry fun end_user_session(
+    public fun end_user_session(
         account: &mut LoyaltyAccount,
         session_id: u64,
         session_duration: u64,
@@ -728,7 +731,7 @@ module loyalty::loyalty_system {
     // ===== Admin Functions =====
     
     /// Withdraw platform fees (admin only)
-    public entry fun withdraw_platform_fees(
+    public fun withdraw_platform_fees(
         platform: &mut LoyaltyPlatform,
         amount: u64,
         ctx: &mut TxContext
@@ -740,7 +743,7 @@ module loyalty::loyalty_system {
     }
 
     /// Deactivate a merchant (admin only)
-    public entry fun deactivate_merchant(
+    public fun deactivate_merchant(
         platform: &mut LoyaltyPlatform,
         merchant: address,
         ctx: &mut TxContext

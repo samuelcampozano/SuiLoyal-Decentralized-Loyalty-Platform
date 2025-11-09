@@ -2,7 +2,7 @@
 /// Provides time-series data, user engagement tracking, and revenue analytics
 module loyalty::analytics {
     use std::string::{String, utf8};
-    use sui::object::{Self, ID, UID};
+    use sui::object::{Self, UID};
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::event;
@@ -13,9 +13,6 @@ module loyalty::analytics {
 
     // ===== Error Codes =====
     const ENotAuthorized: u64 = 2000;
-    const EInvalidDate: u64 = 2001;
-    const EAnalyticsNotFound: u64 = 2002;
-    const EInvalidPeriod: u64 = 2003;
 
     // ===== Core Analytics Structures =====
 
@@ -64,24 +61,10 @@ module loyalty::analytics {
     }
 
     /// Individual reward performance analytics
-    struct RewardAnalytics has store, copy, drop {
-        reward_name: String,
-        total_redeemed: u64,
-        revenue_generated: u64,
-        average_redemption_time: u64, // Days between creation and first redemption
-        popularity_score: u64, // Based on redemption frequency
-    }
+    struct RewardAnalytics has store, copy, drop {}
 
     /// Daily metrics per merchant
-    struct MerchantDailyMetrics has store {
-        date: String,
-        transactions_count: u64,
-        points_issued: u64,
-        points_redeemed: u64,
-        unique_customers: u64,
-        revenue: u64,
-        new_customers: u64,
-    }
+    struct MerchantDailyMetrics has store {}
 
     /// User engagement tracking
     struct UserEngagement has store {
@@ -185,7 +168,7 @@ module loyalty::analytics {
     // ===== Initialization =====
 
     /// Initialize analytics registry (called by platform admin)
-    public entry fun initialize_analytics(clock: &Clock, ctx: &mut TxContext) {
+    public fun initialize_analytics(clock: &Clock, ctx: &mut TxContext) {
         let registry = AnalyticsRegistry {
             id: object::new(ctx),
             admin: tx_context::sender(ctx),
@@ -219,7 +202,7 @@ module loyalty::analytics {
     // ===== Analytics Tracking Functions =====
 
     /// Create or update daily snapshot
-    public entry fun update_daily_snapshot(
+    public fun update_daily_snapshot(
         registry: &mut AnalyticsRegistry,
         date: vector<u8>,
         transactions_count: u64,
@@ -269,7 +252,7 @@ module loyalty::analytics {
     }
 
     /// Initialize or update merchant analytics
-    public entry fun update_merchant_analytics(
+    public fun update_merchant_analytics(
         registry: &mut AnalyticsRegistry,
         merchant: address,
         merchant_name: vector<u8>,
@@ -328,7 +311,7 @@ module loyalty::analytics {
     }
 
     /// Track user engagement metrics
-    public entry fun update_user_engagement(
+    public fun update_user_engagement(
         registry: &mut AnalyticsRegistry,
         user: address,
         session_duration: u64,
@@ -409,7 +392,7 @@ module loyalty::analytics {
     }
 
     /// Update revenue analytics
-    public entry fun update_revenue_analytics(
+    public fun update_revenue_analytics(
         registry: &mut AnalyticsRegistry,
         date: vector<u8>,
         merchant_fees: u64,
@@ -457,7 +440,7 @@ module loyalty::analytics {
     }
 
     /// Update platform-wide metrics
-    public entry fun update_platform_metrics(
+    public fun update_platform_metrics(
         registry: &mut AnalyticsRegistry,
         users: u64,
         merchants: u64,
@@ -495,7 +478,7 @@ module loyalty::analytics {
         let base_score = engagement.total_sessions * 10;
         let transaction_bonus = engagement.lifetime_transactions * 5;
         let recency_bonus = if (engagement.last_active > 0) { 50 } else { 0 };
-        let merchant_diversity = vec_map::size(&engagement.favorite_merchants) * 15;
+        let merchant_diversity = vec_map::length(&engagement.favorite_merchants) * 15;
         
         base_score + transaction_bonus + recency_bonus + (merchant_diversity as u64)
     }
